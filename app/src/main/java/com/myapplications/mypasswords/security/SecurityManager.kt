@@ -1,36 +1,93 @@
 package com.myapplications.mypasswords.security
+
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import java.security.MessageDigest
 
 class SecurityManager(context: Context) {
 
-    private val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
+    companion object {
+        private const val PREFS_NAME = "secure_password_prefs"
+        private const val KEY_USER_PIN = "user_pin_hash"
+        private const val KEY_FAILED_ATTEMPTS = "failed_attempts"
+        private const val KEY_LOCKOUT_TIMESTAMP = "lockout_timestamp"
+        const val MAX_FAILED_ATTEMPTS = 5
+        const val LOCKOUT_DURATION_MINUTES = 5
+    }
 
-    private val sharedPreferences = EncryptedSharedPreferences.create(
-            context,
-            "password_prefs",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    private val masterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+
+    private val sharedPreferences: SharedPreferences = EncryptedSharedPreferences.create(
+        context,
+        PREFS_NAME,
+        masterKey,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
+
+    // --- PIN Management ---
+
+    fun isPinSet(): Boolean {
+        return sharedPreferences.contains(KEY_USER_PIN)
+    }
+
+    fun validatePinFormat(pin: String): Boolean {
+        return pin.length in 4..8 && pin.all { it.isDigit() }
+    }
 
     fun savePin(pin: String) {
         val hashedPin = hashPin(pin)
-        sharedPreferences.edit().putString("user_pin", hashedPin).apply()
+        sharedPreferences.edit().putString(KEY_USER_PIN, hashedPin).apply()
     }
 
     fun verifyPin(pin: String): Boolean {
-        val storedPin = sharedPreferences.getString("user_pin", null)
-        return storedPin == hashPin(pin)
+        val storedPinHash = sharedPreferences.getString(KEY_USER_PIN, null)
+        val isCorrect = storedPinHash == hashPin(pin)
+        if (isCorrect) {
+            resetFailedAttempts()
+        } else {
+            recordFailedAttempt()
+        }
+        return isCorrect
     }
 
-    fun isPinSet(): Boolean {
-        return sharedPreferences.contains("user_pin")
+    // --- Lockout Logic ---
+
+    fun getLockoutTimestamp(): Long {
+        return sharedPreferences.getLong(KEY_LOCKOUT_TIMESTAMP, 0L)
     }
+
+    fun isLockedOut(): Boolean {
+        val lockoutTime = getLockoutTimestamp()
+        return System.currentTimeMillis() < lockoutTime
+    }
+
+    private fun recordFailedAttempt() {
+        val currentAttempts = sharedPreferences.getInt(KEY_FAILED_ATTEMPTS, 0) + 1
+        if (currentAttempts >= MAX_FAILED_ATTEMPTS) {
+            val lockoutUntil = System.currentTimeMillis() + LOCKOUT_DURATION_MINUTES * 60 * 1000
+            sharedPreferences.edit()
+                .putLong(KEY_LOCKOUT_TIMESTAMP, lockoutUntil)
+                .putInt(KEY_FAILED_ATTEMPTS, 0) // Reset after setting lockout
+                .apply()
+        } else {
+            sharedPreferences.edit().putInt(KEY_FAILED_ATTEMPTS, currentAttempts).apply()
+        }
+    }
+
+    private fun resetFailedAttempts() {
+        sharedPreferences.edit()
+            .putInt(KEY_FAILED_ATTEMPTS, 0)
+            .remove(KEY_LOCKOUT_TIMESTAMP) // Also clear any old lockout
+            .apply()
+    }
+
+
+    // --- Hashing ---
 
     private fun hashPin(pin: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -39,14 +96,7 @@ class SecurityManager(context: Context) {
     }
 
     private fun bytesToHex(bytes: ByteArray): String {
-        val hexChars = "0123456789abcdef"
-        val result = StringBuilder(bytes.size * 2)
-        for (byte in bytes) {
-            val i = byte.toInt()
-            result.append(hexChars[i shr 4 and 0x0f])
-            result.append(hexChars[i and 0x0f])
-        }
-        return result.toString()
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     fun savePassword(password: com.myapplications.mypasswords.model.Password) {
@@ -75,5 +125,8 @@ class SecurityManager(context: Context) {
         val allPasswords = getPasswords().toMutableList()
         allPasswords.removeAll { it.id == password.id }
         sharedPreferences.edit().putString("passwords", allPasswords.joinToString(";;;") { "${it.id},${it.title},${it.username},${it.password}" }).apply()
+    }
+    fun deleteAllData() {
+        sharedPreferences.edit().clear().apply()
     }
 }

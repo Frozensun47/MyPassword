@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import com.myapplications.mypasswords.model.Password
 import com.myapplications.mypasswords.repository.PasswordRepository
+import com.myapplications.mypasswords.security.SecurityManager
 import kotlinx.coroutines.flow.Flow
 
 class MainViewModel : ViewModel() {
@@ -24,5 +25,8 @@ class MainViewModel : ViewModel() {
 
     fun deletePassword(context: Context, password: Password) {
         passwordRepository.deletePassword(context, password)
+    }
+    fun deleteAllData(context: Context) {
+        SecurityManager(context).deleteAllData()
     }
 }
