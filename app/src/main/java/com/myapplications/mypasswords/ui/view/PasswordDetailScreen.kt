@@ -29,12 +29,11 @@ fun PasswordDetailScreen(
     passwordId: String?,
     mainViewModel: MainViewModel = viewModel()
 ) {
-    val context = LocalContext.current
     val isNewPassword = passwordId == "new"
     val password = if (isNewPassword) {
         Password(id = UUID.randomUUID().toString(), title = "", username = "", password = "")
     } else {
-        mainViewModel.getPassword(context, passwordId) ?: return // Return if password not found
+        mainViewModel.getPassword(passwordId) ?: return // Return if password not found
     }
 
     var title by remember { mutableStateOf(password.title) }
@@ -58,8 +57,7 @@ fun PasswordDetailScreen(
                 actions = {
                     if (!isNewPassword) {
                         IconButton(onClick = {
-                            mainViewModel.deletePassword(context, password)
-                            // **FIXED:** Navigate back to the main screen, clearing the stack.
+                            mainViewModel.deletePassword(password)
                             navController.popBackStack(Screen.Main.route, inclusive = false)
                         }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete")
@@ -81,7 +79,7 @@ fun PasswordDetailScreen(
                             username = username,
                             password = passwordValue
                         )
-                        mainViewModel.savePassword(context, updatedPassword)
+                        mainViewModel.savePassword(updatedPassword)
                         navController.popBackStack()
                     }
                 }

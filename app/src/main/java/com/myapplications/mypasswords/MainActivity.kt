@@ -8,20 +8,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.myapplications.mypasswords.navigation.AppNavigation
-import com.myapplications.mypasswords.navigation.Screen
-import com.myapplications.mypasswords.security.SecurityManager
+import com.myapplications.mypasswords.repository.PasswordRepository
 import com.myapplications.mypasswords.ui.theme.MyPasswordsTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val securityManager = SecurityManager(this)
-        val startDestination = if (securityManager.isPinSet()) {
-            Screen.PinAuth.route
-        } else {
-            Screen.Onboarding.route
-        }
+        PasswordRepository.initialize(this)
 
         setContent {
             MyPasswordsTheme {
@@ -29,7 +23,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation(startDestination = startDestination)
+                    AppNavigation()
                 }
             }
         }

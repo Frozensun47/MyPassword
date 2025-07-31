@@ -9,24 +9,27 @@ import kotlinx.coroutines.flow.Flow
 
 class MainViewModel : ViewModel() {
 
-    private val passwordRepository = PasswordRepository()
+    private val passwordRepository = PasswordRepository
 
-    fun getPasswords(context: Context): Flow<List<Password>> {
-        return passwordRepository.getPasswords(context)
+    fun getPasswords(): Flow<List<Password>> {
+        return passwordRepository.passwords
     }
 
-    fun getPassword(context: Context, id: String?): Password? {
-    return passwordRepository.getPassword(context, id)
+    fun getPassword(id: String?): Password? {
+        return passwordRepository.getPassword(id)
     }
 
-    fun savePassword(context: Context, password: Password) {
-        passwordRepository.savePassword(context, password)
+    fun savePassword(password: Password) {
+        passwordRepository.savePassword(password)
     }
 
-    fun deletePassword(context: Context, password: Password) {
-        passwordRepository.deletePassword(context, password)
+    fun deletePassword(password: Password) {
+        passwordRepository.deletePassword(password)
     }
+
     fun deleteAllData(context: Context) {
         SecurityManager(context).deleteAllData()
+        // Also need to clear the repository's state
+        PasswordRepository.initialize(context)
     }
 }

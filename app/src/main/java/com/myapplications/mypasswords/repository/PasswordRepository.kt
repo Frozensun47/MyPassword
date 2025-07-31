@@ -4,23 +4,32 @@ import android.content.Context
 import com.myapplications.mypasswords.model.Password
 import com.myapplications.mypasswords.security.SecurityManager
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
-class PasswordRepository {
+object PasswordRepository {
 
-    fun getPasswords(context: Context): Flow<List<Password>> = flow {
-        emit(SecurityManager(context).getPasswords())
+    private val _passwords = MutableStateFlow<List<Password>>(emptyList())
+    val passwords: Flow<List<Password>> = _passwords.asStateFlow()
+
+    private lateinit var securityManager: SecurityManager
+
+    fun initialize(context: Context) {
+        securityManager = SecurityManager(context)
+        _passwords.value = securityManager.getPasswords()
     }
 
-    fun getPassword(context: Context, id: String?): Password? {
-        return SecurityManager(context).getPasswords().find { it.id == id }
+    fun getPassword(id: String?): Password? {
+        return _passwords.value.find { it.id == id }
     }
 
-    fun savePassword(context: Context, password: Password) {
-        SecurityManager(context).savePassword(password)
+    fun savePassword(password: Password) {
+        securityManager.savePassword(password)
+        _passwords.value = securityManager.getPasswords()
     }
 
-    fun deletePassword(context: Context, password: Password) {
-        SecurityManager(context).deletePassword(password)
+    fun deletePassword(password: Password) {
+        securityManager.deletePassword(password)
+        _passwords.value = securityManager.getPasswords()
     }
 }

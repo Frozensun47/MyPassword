@@ -14,7 +14,7 @@ import androidx.navigation.NavController
 import com.myapplications.mypasswords.navigation.Screen
 
 @Composable
-fun AppMenuTray(navController: NavController, closeDrawer: () -> Unit) {
+fun AppMenuTray(closeDrawer: () -> Unit) {
     ModalDrawerSheet(
         drawerContainerColor = MaterialTheme.colorScheme.background
     ) {
@@ -23,12 +23,7 @@ fun AppMenuTray(navController: NavController, closeDrawer: () -> Unit) {
         DrawerItem(
             icon = Icons.Default.Settings,
             label = "Settings",
-            onClick = {
-                // This is where the navigation is handled.
-                // We will move this logic to the MainScreen
-                navController.navigate(Screen.Settings.route)
-                closeDrawer()
-            }
+            onClick = closeDrawer
         )
     }
 }

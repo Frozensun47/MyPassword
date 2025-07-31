@@ -14,7 +14,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,8 +29,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(navController: NavController, mainViewModel: MainViewModel = viewModel()) {
-    val context = LocalContext.current
-    val passwords = mainViewModel.getPasswords(context).collectAsState(initial = emptyList())
+    val passwords = mainViewModel.getPasswords().collectAsState(initial = emptyList())
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -39,7 +37,6 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
         drawerState = drawerState,
         drawerContent = {
             AppMenuTray(
-                navController = navController,
                 closeDrawer = {
                     scope.launch {
                         drawerState.close()

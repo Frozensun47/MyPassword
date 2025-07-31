@@ -1,7 +1,6 @@
 package com.myapplications.mypasswords.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -12,6 +11,7 @@ import com.myapplications.mypasswords.ui.viewmodel.PinViewModel
  * A cleaner, unambiguous definition for all navigation destinations.
  */
 sealed class Screen(val route: String) {
+    data object Splash : Screen("splash")
     data object Onboarding : Screen("onboarding")
     data object PinSetup : Screen("pin_setup")
     data object PinAuth : Screen("pin_auth")
@@ -30,10 +30,13 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun AppNavigation(startDestination: String) {
+fun AppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = startDestination) {
+    NavHost(navController = navController, startDestination = Screen.Splash.route) {
+        composable(Screen.Splash.route) {
+            SplashScreen(navController)
+        }
         composable(Screen.Onboarding.route) {
             OnboardingScreen(navController)
         }

@@ -1,27 +1,32 @@
 package com.myapplications.mypasswords.ui.view
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhonelinkLock
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.myapplications.mypasswords.navigation.Screen
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(navController: NavController) {
-    val pagerState = rememberPagerState(pageCount = { 3 })
     val pages = listOf(
         OnboardingPage(
             icon = Icons.Default.Lock,
@@ -39,28 +44,69 @@ fun OnboardingScreen(navController: NavController) {
             description = "Because there are no backups, if you forget your PIN or lose your phone, your data is gone forever. Your PIN cannot be changed."
         )
     )
+    val pagerState = rememberPagerState(pageCount = { pages.size })
+    val scope = rememberCoroutineScope()
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {},
+                actions = {
+                    TextButton(onClick = {
+                        navController.navigate(Screen.PinSetup.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    }) {
+                        Text("Skip")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
         bottomBar = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Page Indicator
                 Row(
-                    Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    Modifier.padding(bottom = 24.dp),
                     horizontalArrangement = Arrangement.Center
                 ) {
                     repeat(pages.size) { iteration ->
                         val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        val width = animateDpAsState(targetValue = if (pagerState.currentPage == iteration) 24.dp else 8.dp, label = "width animation")
                         Box(
                             modifier = Modifier
-                                .padding(2.dp)
-                                .size(12.dp)
+                                .padding(horizontal = 4.dp)
+                                .height(8.dp)
+                                .width(width.value)
+                                .clip(CircleShape)
+                                .background(color)
                         )
                     }
                 }
+                // Next Button
                 Button(
-                    onClick = { navController.navigate(Screen.PinSetup.route) },
-                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                    onClick = {
+                        scope.launch {
+                            if (pagerState.currentPage < pages.size - 1) {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            } else {
+                                navController.navigate(Screen.PinSetup.route) {
+                                    popUpTo(Screen.Onboarding.route) { inclusive = true }
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp)
                 ) {
-                    Text("I Understand, Continue")
+                    Text("Next")
                 }
             }
         }
