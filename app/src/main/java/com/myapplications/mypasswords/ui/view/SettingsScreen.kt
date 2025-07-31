@@ -1,11 +1,15 @@
 package com.myapplications.mypasswords.ui.view
 
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Gavel
+import androidx.compose.material.icons.filled.PrivacyTip
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,6 +52,36 @@ fun SettingsScreen(navController: NavController, mainViewModel: MainViewModel = 
                 title = "About",
                 subtitle = "App information and links",
                 onClick = { navController.navigate(Screen.About.route) }
+            )
+            Divider()
+            SettingsItem(
+                icon = Icons.Default.PrivacyTip,
+                title = "Privacy",
+                subtitle = "Read our privacy policy",
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.mypasswords.myapplications.store/privacy"))
+                    context.startActivity(intent)
+                }
+            )
+            Divider()
+            SettingsItem(
+                icon = Icons.Default.Gavel,
+                title = "Terms and conditions",
+                subtitle = "Read our terms and conditions",
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.mypasswords.myapplications.store/terms"))
+                    context.startActivity(intent)
+                }
+            )
+            Divider()
+            SettingsItem(
+                icon = Icons.Default.Security,
+                title = "Security",
+                subtitle = "Learn about our security measures",
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.mypasswords.myapplications.store/security"))
+                    context.startActivity(intent)
+                }
             )
             Divider()
             SettingsItem(
