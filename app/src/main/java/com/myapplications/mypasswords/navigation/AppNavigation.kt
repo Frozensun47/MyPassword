@@ -1,9 +1,9 @@
 package com.myapplications.mypasswords.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.myapplications.mypasswords.ui.view.*
 import com.myapplications.mypasswords.ui.viewmodel.PinViewModel
 
@@ -30,9 +30,7 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
-
+fun AppNavigation(navController: NavHostController) {
     NavHost(navController = navController, startDestination = Screen.Splash.route) {
         composable(Screen.Splash.route) {
             SplashScreen(navController)

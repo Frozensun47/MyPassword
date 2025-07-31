@@ -67,13 +67,9 @@ fun PasswordDetailScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (title.isBlank() || username.isBlank() || passwordValue.isBlank()) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("All fields must be filled.")
-                        }
-                    } else {
+            if (title.isNotBlank() && username.isNotBlank() && passwordValue.isNotBlank()) {
+                FloatingActionButton(
+                    onClick = {
                         val updatedPassword = password.copy(
                             title = title,
                             username = username,
@@ -82,9 +78,9 @@ fun PasswordDetailScreen(
                         mainViewModel.savePassword(updatedPassword)
                         navController.popBackStack()
                     }
+                ) {
+                    Icon(Icons.Default.Done, contentDescription = "Save")
                 }
-            ) {
-                Icon(Icons.Default.Done, contentDescription = "Save")
             }
         }
     ) { paddingValues ->

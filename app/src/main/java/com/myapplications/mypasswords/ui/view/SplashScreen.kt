@@ -26,8 +26,8 @@ fun SplashScreen(navController: NavController) {
 
     // This effect runs when the screen is first displayed
     LaunchedEffect(Unit) {
-        // Wait for 2 seconds
-        delay(2000)
+        // Wait for 3 seconds
+        delay(1000)
 
         // a new SecurityManager instance is created
         val securityManager = SecurityManager(context)
