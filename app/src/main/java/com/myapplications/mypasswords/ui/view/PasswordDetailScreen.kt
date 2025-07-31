@@ -17,7 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.myapplications.mypasswords.model.Password
+import com.myapplications.mypasswords.navigation.Screen
 import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,10 +40,13 @@ fun PasswordDetailScreen(
     var title by remember { mutableStateOf(password.title) }
     var username by remember { mutableStateOf(password.username) }
     var passwordValue by remember { mutableStateOf(password.password) }
-    // Add this state to toggle password visibility
     var passwordVisible by remember { mutableStateOf(false) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(if (isNewPassword) "Add Password" else "Edit Password") },
@@ -54,7 +59,8 @@ fun PasswordDetailScreen(
                     if (!isNewPassword) {
                         IconButton(onClick = {
                             mainViewModel.deletePassword(context, password)
-                            navController.popBackStack()
+                            // **FIXED:** Navigate back to the main screen, clearing the stack.
+                            navController.popBackStack(Screen.Main.route, inclusive = false)
                         }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete")
                         }
@@ -65,13 +71,19 @@ fun PasswordDetailScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    val updatedPassword = password.copy(
-                        title = title,
-                        username = username,
-                        password = passwordValue
-                    )
-                    mainViewModel.savePassword(context, updatedPassword)
-                    navController.popBackStack()
+                    if (title.isBlank() || username.isBlank() || passwordValue.isBlank()) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("All fields must be filled.")
+                        }
+                    } else {
+                        val updatedPassword = password.copy(
+                            title = title,
+                            username = username,
+                            password = passwordValue
+                        )
+                        mainViewModel.savePassword(context, updatedPassword)
+                        navController.popBackStack()
+                    }
                 }
             ) {
                 Icon(Icons.Default.Done, contentDescription = "Save")
@@ -106,7 +118,6 @@ fun PasswordDetailScreen(
                 label = { Text("Password") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                // Toggle between showing plain text and password dots
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     val image = if (passwordVisible)
