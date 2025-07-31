@@ -20,11 +20,12 @@ fun AppMenuTray(navController: NavController, closeDrawer: () -> Unit) {
     ) {
         Text("MyPasswords", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(16.dp))
         Divider()
-        // The "Home" DrawerItem has been removed.
         DrawerItem(
             icon = Icons.Default.Settings,
             label = "Settings",
             onClick = {
+                // This is where the navigation is handled.
+                // We will move this logic to the MainScreen
                 navController.navigate(Screen.Settings.route)
                 closeDrawer()
             }

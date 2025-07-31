@@ -38,9 +38,16 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            AppMenuTray(navController = navController) {
-                scope.launch { drawerState.close() }
-            }
+            AppMenuTray(
+                navController = navController,
+                closeDrawer = {
+                    scope.launch {
+                        drawerState.close()
+                        // NOW we navigate
+                        navController.navigate(Screen.Settings.route)
+                    }
+                }
+            )
         }
     ) {
         Scaffold(
