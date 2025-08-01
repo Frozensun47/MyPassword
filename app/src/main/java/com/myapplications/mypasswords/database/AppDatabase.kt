@@ -5,9 +5,9 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
-import androidx.sqlite.db.framework.SupportOpenHelperFactory
 import com.myapplications.mypasswords.model.Password
 import com.myapplications.mypasswords.security.SecurityManager
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(entities = [Password::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
