@@ -11,28 +11,28 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// New Dark Color Scheme
+// New Dark Color Scheme using Google Blue
 private val DarkColorScheme = darkColorScheme(
-    primary = SteelBlue,
-    secondary = SkyBlue,
-    background = DeepBlue,
-    surface = SlateBlue,
-    onPrimary = LightGrey,
-    onSecondary = LightGrey,
-    onBackground = LightGrey,
-    onSurface = LightGrey
+    primary = md_theme_dark_primary,
+    onPrimary = md_theme_dark_onPrimary,
+    primaryContainer = md_theme_dark_primaryContainer,
+    secondary = md_theme_dark_secondary,
+    background = md_theme_dark_background,
+    surface = md_theme_dark_surface,
+    onBackground = md_theme_dark_onBackground,
+    onSurface = md_theme_dark_onSurface,
 )
 
-// New Light Color Scheme
+// New Light Color Scheme using Google Blue
 private val LightColorScheme = lightColorScheme(
-    primary = SteelBlue,
-    secondary = SkyBlue,
-    background = PureWhite,
-    surface = LightGrey,
-    onPrimary = PureWhite,
-    onSecondary = PureWhite,
-    onBackground = DeepBlue,
-    onSurface = DeepBlue
+    primary = md_theme_light_primary,
+    onPrimary = md_theme_light_onPrimary,
+    primaryContainer = md_theme_light_primaryContainer,
+    secondary = md_theme_light_secondary,
+    background = md_theme_light_background,
+    surface = md_theme_light_surface,
+    onBackground = md_theme_light_onBackground,
+    onSurface = md_theme_light_onSurface,
 )
 
 @Composable
@@ -46,9 +46,7 @@ fun MyPasswordsTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // This is the key change: Make status bar match the background
             window.statusBarColor = colorScheme.background.toArgb()
-            // This ensures status bar icons (time, battery) are visible
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

@@ -108,13 +108,13 @@ fun AboutScreen(navController: NavController) {
                             title = "Zero Internet Access",
                             description = "This app has no internet permission. It's physically impossible for your data to leave your device."
                         )
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         InfoCard(
                             icon = Icons.Default.Security,
                             title = "Military-Grade Encryption",
                             description = "All data is encrypted with AES-256, the same standard trusted by governments and banks worldwide."
                         )
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         InfoCard(
                             icon = Icons.Default.Face,
                             title = "Full Data Control",

@@ -53,7 +53,7 @@ fun SettingsScreen(navController: NavController, mainViewModel: MainViewModel = 
                 subtitle = "App information and links",
                 onClick = { navController.navigate(Screen.About.route) }
             )
-            Divider()
+            HorizontalDivider()
             SettingsItem(
                 icon = Icons.Default.PrivacyTip,
                 title = "Privacy",
@@ -63,7 +63,7 @@ fun SettingsScreen(navController: NavController, mainViewModel: MainViewModel = 
                     context.startActivity(intent)
                 }
             )
-            Divider()
+            HorizontalDivider()
             SettingsItem(
                 icon = Icons.Default.Gavel,
                 title = "Terms and conditions",
@@ -73,7 +73,7 @@ fun SettingsScreen(navController: NavController, mainViewModel: MainViewModel = 
                     context.startActivity(intent)
                 }
             )
-            Divider()
+            HorizontalDivider()
             SettingsItem(
                 icon = Icons.Default.Security,
                 title = "Security",
@@ -83,7 +83,7 @@ fun SettingsScreen(navController: NavController, mainViewModel: MainViewModel = 
                     context.startActivity(intent)
                 }
             )
-            Divider()
+            HorizontalDivider()
             SettingsItem(
                 icon = Icons.Default.Warning,
                 title = "Delete All Data",
@@ -91,7 +91,7 @@ fun SettingsScreen(navController: NavController, mainViewModel: MainViewModel = 
                 onClick = { showDeleteDialog = true },
                 titleColor = MaterialTheme.colorScheme.error
             )
-            Divider()
+            HorizontalDivider()
         }
     }
 
