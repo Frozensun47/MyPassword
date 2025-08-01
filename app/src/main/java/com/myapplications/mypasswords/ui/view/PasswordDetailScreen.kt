@@ -10,7 +10,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -19,21 +18,20 @@ import androidx.navigation.NavController
 import com.myapplications.mypasswords.model.Password
 import com.myapplications.mypasswords.navigation.Screen
 import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
-import kotlinx.coroutines.launch
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PasswordDetailScreen(
     navController: NavController,
-    passwordId: String?,
+    passwordId: String,
     mainViewModel: MainViewModel = viewModel()
 ) {
     val isNewPassword = passwordId == "new"
     val password = if (isNewPassword) {
         Password(id = UUID.randomUUID().toString(), title = "", username = "", password = "")
     } else {
-        mainViewModel.getPassword(passwordId) ?: return // Return if password not found
+        mainViewModel.getPasswordById(passwordId) ?: return // Return if password not found
     }
 
     var title by remember { mutableStateOf(password.title) }

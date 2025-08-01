@@ -27,7 +27,7 @@ class PinViewModel : ViewModel() {
         }
     }
 
-    fun checkInitialLockout(context: Context) {
+    suspend fun checkInitialLockout(context: Context) {
         val securityManager = SecurityManager(context)
         if (securityManager.isLockedOut()) {
             _pinState.update {
@@ -39,7 +39,7 @@ class PinViewModel : ViewModel() {
         }
     }
 
-    fun clearLockoutIfExpired(context: Context) {
+    suspend fun clearLockoutIfExpired(context: Context) {
         val securityManager = SecurityManager(context)
         if (!securityManager.isLockedOut()) {
             _pinState.update { it.copy(isLocked = false, lockoutUntil = 0L) }

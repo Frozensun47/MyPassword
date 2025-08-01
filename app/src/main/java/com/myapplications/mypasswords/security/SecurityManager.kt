@@ -105,6 +105,14 @@ class SecurityManager(private val context: Context) {
         return System.currentTimeMillis() < lockoutTime
     }
 
+    /**
+     * Retrieves the timestamp (in milliseconds) when the current lockout will end.
+     * Returns 0L if the app is not currently locked out.
+     */
+    suspend fun getLockoutTimestamp(): Long {
+        return readPreferences()[PrefKeys.LOCKOUT_TIMESTAMP] ?: 0L
+    }
+
     private suspend fun recordFailedAttempt() {
         context.dataStore.edit { settings ->
             val currentAttempts = (settings[PrefKeys.FAILED_ATTEMPTS] ?: 0) + 1

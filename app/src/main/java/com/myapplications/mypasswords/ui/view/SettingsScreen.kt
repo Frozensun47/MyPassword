@@ -99,7 +99,7 @@ fun SettingsScreen(navController: NavController, mainViewModel: MainViewModel = 
         DeleteDataDialog(
             onDismiss = { showDeleteDialog = false },
             onConfirm = {
-                mainViewModel.deleteAllData(context)
+                mainViewModel.deleteAllData()
                 // Restart the app
                 val packageManager = context.packageManager
                 val intent = packageManager.getLaunchIntentForPackage(context.packageName)

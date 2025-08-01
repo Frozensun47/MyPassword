@@ -11,14 +11,14 @@ interface PasswordDao {
     fun getAllPasswords(): Flow<List<Password>>
 
     @Query("SELECT * FROM passwords WHERE id = :id")
-    suspend fun getPasswordById(id: String): Password?
+    fun getPasswordById(id: String): Password?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdate(password: Password)
+    fun insertOrUpdate(password: Password)
 
     @Delete
-    suspend fun delete(password: Password)
+    fun delete(password: Password)
 
     @Query("DELETE FROM passwords")
-    suspend fun deleteAll()
+    fun deleteAll()
 }

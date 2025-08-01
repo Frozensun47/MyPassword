@@ -67,7 +67,9 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable(Screen.PasswordDetail.route) { backStackEntry ->
             val passwordId = backStackEntry.arguments?.getString("passwordId")
-            PasswordDetailScreen(navController = navController, passwordId = passwordId)
+            if (passwordId != null) {
+                PasswordDetailScreen(navController = navController, passwordId = passwordId)
+            }
         }
     }
 }

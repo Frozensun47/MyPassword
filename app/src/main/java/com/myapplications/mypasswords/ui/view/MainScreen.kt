@@ -53,7 +53,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
 
     // --- Show Folder Dialog ---
     if (showFolderDialog && selectedPassword != null) {
-        `FolderEditDialog.kt`(
+        FolderEditDialog(
             password = selectedPassword!!,
             onDismiss = { showFolderDialog = false },
             onConfirm = { folderName ->
