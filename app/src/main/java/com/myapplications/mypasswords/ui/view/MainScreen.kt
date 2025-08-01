@@ -1,30 +1,42 @@
 package com.myapplications.mypasswords.ui.view
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.myapplications.mypasswords.R // Make sure R is imported
+import com.myapplications.mypasswords.R
 import com.myapplications.mypasswords.model.Password
 import com.myapplications.mypasswords.navigation.Screen
 import com.myapplications.mypasswords.ui.components.AppMenuTray
 import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
+
+// Helper function to convert a hex string to a Compose Color
+fun hexToColor(hex: String?): Color? {
+    if (hex == null) return null
+    return try {
+        Color(android.graphics.Color.parseColor(hex))
+    } catch (e: IllegalArgumentException) {
+        null // Return null if the hex string is invalid
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +45,36 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    // --- State for long-press menu and dialogs ---
+    var showMenu by remember { mutableStateOf(false) }
+    var showFolderDialog by remember { mutableStateOf(false) }
+    var showColorDialog by remember { mutableStateOf(false) }
+    var selectedPassword by remember { mutableStateOf<Password?>(null) }
+
+    // --- Show Folder Dialog ---
+    if (showFolderDialog && selectedPassword != null) {
+        `FolderEditDialog.kt`(
+            password = selectedPassword!!,
+            onDismiss = { showFolderDialog = false },
+            onConfirm = { folderName ->
+                mainViewModel.updatePasswordFolder(selectedPassword!!.id, folderName)
+                showFolderDialog = false
+            }
+        )
+    }
+
+    // --- Show Color Picker Dialog ---
+    if (showColorDialog && selectedPassword != null) {
+        ColorPickerDialog(
+            onDismiss = { showColorDialog = false },
+            onColorSelected = { colorHex ->
+                mainViewModel.updatePasswordColor(selectedPassword!!.id, colorHex)
+                showColorDialog = false
+            }
+        )
+    }
+
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -40,7 +82,6 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                 closeDrawer = {
                     scope.launch {
                         drawerState.close()
-                        // NOW we navigate
                         navController.navigate(Screen.Settings.route)
                     }
                 }
@@ -48,64 +89,93 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
         }
     ) {
         Scaffold(
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { navController.navigate(Screen.PasswordDetail.createRoute("new")) },
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Password")
-                }
-            }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                // This is the new, definitive header layout
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 7.dp) // Minimal vertical padding
-                ) {
-                    // Centered Logo with a specific height
-                    Image(
-                        painter = painterResource(id = R.drawable.my_password_text),
-                        contentDescription = "App Logo",
-                        modifier = Modifier
-                            // Set a specific height. The width will adjust automatically.
-                            .height(40.dp)
-                            .align(Alignment.Center)
+            topBar = {
+                TopAppBar(
+                    title = {
+                        // Centered Logo
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            Image(
+                                painter = painterResource(id = R.drawable.my_password_text),
+                                contentDescription = "App Logo",
+                                modifier = Modifier
+                                    .height(35.dp)
+                                    .align(Alignment.Center)
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        // Menu Icon
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    },
+                    actions = {
+                        // --- ADD BUTTON MOVED TO TOP APP BAR ---
+                        IconButton(onClick = { navController.navigate(Screen.PasswordDetail.createRoute("new")) }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add Password")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
                     )
-
-                    // Menu Icon aligned to the left
-                    IconButton(
-                        onClick = { scope.launch { drawerState.open() } },
-                        modifier = Modifier.align(Alignment.CenterStart)
-                    ) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                )
+            },
+            // --- FLOATING ACTION BUTTON REMOVED ---
+        ) { paddingValues ->
+            Box {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                ) {
+                    if (passwords.value.isEmpty()) {
+                        EmptyState(PaddingValues())
+                    } else {
+                        PasswordList(
+                            passwords = passwords.value,
+                            navController = navController,
+                            paddingValues = PaddingValues(),
+                            onLongPress = { password ->
+                                selectedPassword = password
+                                showMenu = true
+                            }
+                        )
                     }
                 }
 
-                // The rest of your screen content
-                if (passwords.value.isEmpty()) {
-                    EmptyState(PaddingValues())
-                } else {
-                    PasswordList(
-                        passwords = passwords.value,
-                        navController = navController,
-                        paddingValues = PaddingValues()
+                // --- Long-press dropdown menu ---
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Add to Folder") },
+                        onClick = {
+                            showMenu = false
+                            showFolderDialog = true
+                        },
+                        leadingIcon = { Icon(Icons.Default.Folder, "Folder") }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Change Color") },
+                        onClick = {
+                            showMenu = false
+                            showColorDialog = true
+                        },
+                        leadingIcon = { Icon(Icons.Default.Palette, "Color") }
                     )
                 }
             }
         }
     }
 }
+
 @Composable
 fun PasswordList(
     passwords: List<Password>,
     navController: NavController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    onLongPress: (Password) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -114,23 +184,36 @@ fun PasswordList(
             .padding(horizontal = 8.dp)
     ) {
         items(passwords) { password ->
-            PasswordCard(password = password) {
-                // This is the key change. The call is now clear and unambiguous.
-                navController.navigate(Screen.PasswordPinVerify.createRoute(password.id))
-            }
+            PasswordCard(
+                password = password,
+                onClick = {
+                    navController.navigate(Screen.PasswordPinVerify.createRoute(password.id))
+                },
+                onLongClick = { onLongPress(password) } // Pass the long click event up
+            )
         }
     }
 }
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PasswordCard(password: Password, onClick: () -> Unit) {
+fun PasswordCard(
+    password: Password,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    val cardColor = hexToColor(password.colorHex) ?: MaterialTheme.colorScheme.surfaceVariant
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
-            .clickable(onClick = onClick),
-        // This is the key change to fix the card color
+            .combinedClickable( // --- IMPLEMENTED combinedClickable ---
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = cardColor
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -143,14 +226,21 @@ fun PasswordCard(password: Password, onClick: () -> Unit) {
                     text = password.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    // Use onSurface color for better readability
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                // Display folder if it exists
+                if (!password.folder.isNullOrBlank()) {
+                    Text(
+                        text = "Folder: ${password.folder}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Light,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
                 Text(
                     text = password.username,
                     style = MaterialTheme.typography.bodyMedium,
-                    // Use a slightly dimmed onSurface color
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
             }
         }
@@ -159,6 +249,7 @@ fun PasswordCard(password: Password, onClick: () -> Unit) {
 
 @Composable
 fun EmptyState(paddingValues: PaddingValues) {
+    // This composable remains the same
     Column(
         modifier = Modifier
             .fillMaxSize()

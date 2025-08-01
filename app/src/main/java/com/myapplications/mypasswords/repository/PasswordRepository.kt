@@ -1,35 +1,42 @@
 package com.myapplications.mypasswords.repository
 
 import android.content.Context
+import com.myapplications.mypasswords.database.AppDatabase
+import com.myapplications.mypasswords.database.PasswordDao
 import com.myapplications.mypasswords.model.Password
-import com.myapplications.mypasswords.security.SecurityManager
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
+// The repository is now an object (singleton)
 object PasswordRepository {
 
-    private val _passwords = MutableStateFlow<List<Password>>(emptyList())
-    val passwords: Flow<List<Password>> = _passwords.asStateFlow()
+    private lateinit var passwordDao: PasswordDao
 
-    private lateinit var securityManager: SecurityManager
-
+    // Call this from your Application or MainActivity class
     fun initialize(context: Context) {
-        securityManager = SecurityManager(context)
-        _passwords.value = securityManager.getPasswords()
+        if (!::passwordDao.isInitialized) {
+            val database = AppDatabase.getInstance(context)
+            passwordDao = database.passwordDao()
+        }
     }
 
-    fun getPassword(id: String?): Password? {
-        return _passwords.value.find { it.id == id }
+    fun getPasswords(): Flow<List<Password>> {
+        return passwordDao.getAllPasswords()
     }
 
-    fun savePassword(password: Password) {
-        securityManager.savePassword(password)
-        _passwords.value = securityManager.getPasswords()
+    suspend fun getPassword(id: String?): Password? {
+        if (id == null) return null
+        return passwordDao.getPasswordById(id)
     }
 
-    fun deletePassword(password: Password) {
-        securityManager.deletePassword(password)
-        _passwords.value = securityManager.getPasswords()
+    suspend fun savePassword(password: Password) {
+        passwordDao.insertOrUpdate(password)
+    }
+
+    suspend fun deletePassword(password: Password) {
+        passwordDao.delete(password)
+    }
+
+    suspend fun deleteAllData() {
+        passwordDao.deleteAll()
     }
 }

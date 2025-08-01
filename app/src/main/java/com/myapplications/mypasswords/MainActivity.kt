@@ -17,6 +17,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // --- INITIALIZE THE REPOSITORY ---
         PasswordRepository.initialize(this)
 
         setContent {
