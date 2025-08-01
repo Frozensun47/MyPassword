@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ColorPickerDialog(
     onDismiss: () -> Unit,
-    onColorSelected: (String) -> Unit
+    onColorSelected: (Color) -> Unit
 ) {
     val colors = listOf(
         "#FFFFFF", "#F28B82", "#FCCB04", "#CCFF90",
@@ -44,7 +44,7 @@ fun ColorPickerDialog(
                             .clip(CircleShape)
                             .background(hexToColor(colorHex) ?: Color.Transparent)
                             .border(1.dp, Color.Gray, CircleShape)
-                            .clickable { onColorSelected(colorHex) }
+                            .clickable { hexToColor(colorHex)?.let { onColorSelected(it) } }
                     )
                 }
             }

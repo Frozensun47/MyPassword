@@ -27,7 +27,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      * Fetches a single password by its ID from the repository.
      * This is a suspend function and must be called from a coroutine.
      */
-    fun getPasswordById(id: String): Password? {
+    suspend fun getPasswordById(id: String): Password? {
         return repository.getPassword(id)
     }
 

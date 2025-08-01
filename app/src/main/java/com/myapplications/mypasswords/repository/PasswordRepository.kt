@@ -36,7 +36,7 @@ object PasswordRepository {
     /**
      * Get a single password by ID (suspend)
      */
-    fun getPassword(id: String?): Password? {
+    suspend fun getPassword(id: String?): Password? {
         if (id == null) return null
         checkInitialized()
         return passwordDao.getPasswordById(id)
@@ -45,7 +45,7 @@ object PasswordRepository {
     /**
      * Insert or update a password
      */
-    fun savePassword(password: Password) {
+    suspend fun savePassword(password: Password) {
         checkInitialized()
         passwordDao.insertOrUpdate(password)
     }
@@ -53,7 +53,7 @@ object PasswordRepository {
     /**
      * Delete a password
      */
-    fun deletePassword(password: Password) {
+    suspend fun deletePassword(password: Password) {
         checkInitialized()
         passwordDao.delete(password)
     }
@@ -61,7 +61,7 @@ object PasswordRepository {
     /**
      * Delete all passwords (use with caution)
      */
-    fun deleteAllData() {
+    suspend fun deleteAllData() {
         checkInitialized()
         passwordDao.deleteAll()
     }

@@ -1,24 +1,28 @@
 package com.myapplications.mypasswords.ui.view
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import com.myapplications.mypasswords.model.Password
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun FolderEditDialog(
-    password: Password,
+    initialFolderName: String = "",
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
-    var folderName by remember { mutableStateOf(password.folder ?: "") }
+    var folderName by remember { mutableStateOf(initialFolderName) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add to Folder") },
+        title = { Text(if (initialFolderName.isEmpty()) "Create Folder" else "Rename Folder") },
         text = {
             Column {
-                Text("Enter a folder name for '${password.title}'.")
+                Text("Enter a name for the new folder.")
+                Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = folderName,
                     onValueChange = { folderName = it },
@@ -29,7 +33,12 @@ fun FolderEditDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(folderName) }
+                onClick = {
+                    if (folderName.isNotBlank()) {
+                        onConfirm(folderName.trim())
+                    }
+                },
+                enabled = folderName.isNotBlank()
             ) {
                 Text("Save")
             }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,7 +55,8 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
     // --- Show Folder Dialog ---
     if (showFolderDialog && selectedPassword != null) {
         FolderEditDialog(
-            password = selectedPassword!!,
+            // Pass the password's current folder name to the correct parameter
+            initialFolderName = selectedPassword!!.folder ?: "",
             onDismiss = { showFolderDialog = false },
             onConfirm = { folderName ->
                 mainViewModel.updatePasswordFolder(selectedPassword!!.id, folderName)
@@ -67,8 +69,9 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
     if (showColorDialog && selectedPassword != null) {
         ColorPickerDialog(
             onDismiss = { showColorDialog = false },
-            onColorSelected = { colorHex ->
-                mainViewModel.updatePasswordColor(selectedPassword!!.id, colorHex)
+            onColorSelected = { color: Color ->
+                val hexString = String.format("#%06X", 0xFFFFFF and color.toArgb())
+                mainViewModel.updatePasswordColor(selectedPassword!!.id, hexString)
                 showColorDialog = false
             }
         )
