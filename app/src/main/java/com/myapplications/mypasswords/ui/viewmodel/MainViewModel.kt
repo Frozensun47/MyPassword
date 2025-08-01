@@ -1,56 +1,55 @@
-package com.myapplications.mypasswords.ui.viewmodel
+package com.myapplications.mypasswords.ui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.myapplications.mypasswords.model.Password
-import com.myapplications.mypasswords.repository.PasswordRepository
-import kotlinx.coroutines.flow.Flow
+import com.myapplications.mypasswords.security.SecurityManager
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class MainViewModel : ViewModel() {
+// Represents the initial state of the app (PIN set or not)
+enum class AppState {
+    LOADING,
+    PIN_NOT_SET,
+    PIN_SET
+}
 
-    private val repository = PasswordRepository
+class MainViewModel(application: Application) : AndroidViewModel(application) {
 
-    fun getPasswords(): Flow<List<Password>> {
-        return repository.getPasswords()
+    private val securityManager = SecurityManager(application)
+
+    private val _appState = MutableStateFlow(AppState.LOADING)
+    val appState = _appState.asStateFlow()
+
+    init {
+        checkInitialState()
     }
 
-    fun getPassword(id: String?): Password? {
-        return repository.getPassword(id)
-    }
-
-    fun savePassword(password: Password) {
+    /**
+     * Checks if a PIN is set and updates the UI state accordingly.
+     * This is called from a coroutine using viewModelScope.
+     */
+    private fun checkInitialState() {
         viewModelScope.launch {
-            repository.savePassword(password)
-        }
-    }
-
-    fun deletePassword(password: Password) {
-        viewModelScope.launch {
-            repository.deletePassword(password)
-        }
-    }
-
-    // --- NEW FUNCTION: Update Folder ---
-    fun updatePasswordFolder(passwordId: String, folderName: String) {
-        viewModelScope.launch {
-            val password = repository.getPassword(passwordId)
-            password?.let {
-                val updatedPassword = it.copy(folder = folderName.trim())
-                repository.savePassword(updatedPassword)
+            if (securityManager.isPinSet()) {
+                _appState.value = AppState.PIN_SET
+            } else {
+                _appState.value = AppState.PIN_NOT_SET
             }
         }
     }
 
-    // --- NEW FUNCTION: Update Color ---
-    fun updatePasswordColor(passwordId: String, colorHex: String) {
+    /**
+     * Example function to verify a PIN submitted by the user.
+     */
+    fun onPinSubmitted(pin: String) {
         viewModelScope.launch {
-            val password = repository.getPassword(passwordId)
-            password?.let {
-                // Use null if the color is white, to signify "default"
-                val finalColorHex = if (colorHex == "#FFFFFF") null else colorHex
-                val updatedPassword = it.copy(colorHex = finalColorHex)
-                repository.savePassword(updatedPassword)
+            val isCorrect = securityManager.verifyPin(pin)
+            if (isCorrect) {
+                // PIN is correct, navigate to main content
+            } else {
+                // Show "incorrect PIN" error
             }
         }
     }

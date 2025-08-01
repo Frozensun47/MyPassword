@@ -2,18 +2,19 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.devtools.ksp)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.myapplications.mypasswords"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.myapplications.mypasswords"
-        minSdk = 26
+        minSdk = 28
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.0"
+        versionCode = 4
+        versionName = "1.1-closed-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -29,17 +30,30 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            // Optional: enable debug logs or disable encryption checks
+        }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    buildFeatures {
+        compose = true
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/gradle/incremental.annotation.processors"
+            // Prevent merging conflicts with SQLCipher native libs
+            excludes += "/lib/**/libsqlcipher.so" // Avoid duplicate .so files
         }
     }
 }
@@ -63,13 +77,14 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // Room and SQLCipher
+    // Room and SQLCipher (Encrypted Database)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-    implementation(libs.net.zetetic.sqlcipher)
-    implementation(libs.androidx.sqlite.framework)
-    implementation(libs.androidx.sqlite.ktx)
+    implementation(libs.net.zetetic.sqlcipher) // SQLCipher replaces Android SQLite
+
+    // DataStore (for preferences)
+    implementation(libs.androidx.datastore.preferences)
 
     // Testing
     testImplementation(libs.junit)

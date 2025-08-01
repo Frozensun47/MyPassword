@@ -4,50 +4,61 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.myapplications.mypasswords.model.Password
 import com.myapplications.mypasswords.security.SecurityManager
+import kotlinx.coroutines.runBlocking
+import net.zetetic.database.sqlcipher.SQLiteConnection
+import net.zetetic.database.sqlcipher.SQLiteDatabaseHook
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
+/**
+ * The Room Database class.
+ */
 @Database(entities = [Password::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
-
     abstract fun passwordDao(): PasswordDao
+}
 
-    companion object {
-        @Volatile
-        private var INSTANCE: AppDatabase? = null
+/**
+ * Singleton provider for AppDatabase with encrypted SQLCipher support.
+ */
+object DatabaseProvider {
 
-        fun getInstance(context: Context): AppDatabase {
-            // Use double-checked locking to ensure thread safety.
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: buildDatabase(context).also { INSTANCE = it }
+    @Volatile
+    private var INSTANCE: AppDatabase? = null
+
+    fun getInstance(context: Context): AppDatabase {
+        return INSTANCE ?: synchronized(this) {
+            INSTANCE ?: buildDatabase(context).also { INSTANCE = it }
+        }
+    }
+
+    private fun buildDatabase(context: Context): AppDatabase {
+        // Retrieve passphrase using suspend function
+        val passphrase = runBlocking {
+            SecurityManager(context).getDatabasePassphrase().toByteArray()
+        }
+
+        // SQLCipher hook to configure encryption settings
+        val hook = object : SQLiteDatabaseHook {
+            override fun preKey(connection: SQLiteConnection) {
+                // Optional: log or monitor
+            }
+
+            override fun postKey(connection: SQLiteConnection) {
+                // Apply encryption settings after key is set
+                connection.execute("PRAGMA kdf_iter = 256000;", null, null)
+                connection.execute("PRAGMA cipher_hmac_algorithm = HMAC_SHA512;", null, null)
+                connection.execute("PRAGMA cipher_page_size = 4096;", null, null)
+                connection.execute("PRAGMA cipher = 'aes-256-gcm';", null, null)
             }
         }
 
-        private fun buildDatabase(context: Context): AppDatabase {
-            // 1. Get the passphrase securely from SecurityManager.
-            val securityManager = SecurityManager(context)
-            val passphrase = securityManager.getDatabasePassphrase().toByteArray()
+        // Create factory with passphrase, hook, and secure clear option
+        val factory = SupportOpenHelperFactory(passphrase, hook, true)
 
-            // 2. Create the configuration for the encrypted database.
-            val openParams = SupportSQLiteDatabase.OpenParams.Builder()
-                .setCipherAlgorithm(SupportSQLiteDatabase.SQLITE_CIPHER_AES256_GCM) // Recommended
-                .setKdfAlgorithm(SupportSQLiteDatabase.SQLITE_KDF_PBKDF2_HMAC_SHA512) // Recommended
-                .setKey(passphrase)
-                .build()
-
-            // 3. Create the factory using the configuration.
-            val factory = SupportOpenHelperFactory(openParams)
-
-            // 4. Build the Room database instance.
-            return Room.databaseBuilder(
-                context.applicationContext,
-                AppDatabase::class.java,
-                "mypasswords.db"
-            )
-                .openHelperFactory(factory) // Use the new factory
-                .build()
-        }
+        return Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "mypasswords.db")
+            .openHelperFactory(factory)
+            .build()
     }
 }
