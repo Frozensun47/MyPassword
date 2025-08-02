@@ -5,9 +5,9 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -21,7 +21,6 @@ import com.myapplications.mypasswords.ui.components.AppMenuTray
 import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(navController: NavController, mainViewModel: MainViewModel = viewModel()) {
     val homeItems by mainViewModel.homeItems.collectAsState(initial = emptyList())
@@ -80,7 +79,17 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        drawerContent = { AppMenuTray(closeDrawer = { scope.launch { drawerState.close() } }) }
+        drawerContent = {
+            AppMenuTray(
+                navController = navController,
+                onSettingsClick = {
+                    scope.launch {
+                        drawerState.close()
+                        navController.navigate(Screen.Settings.route)
+                    }
+                }
+            )
+        }
     ) {
         Scaffold(
             topBar = {
@@ -107,14 +116,15 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
             floatingActionButtonPosition = FabPosition.Center,
             floatingActionButton = {
                 if (!inSelectionMode) {
-                    // **UI UPDATE**: Using LargeFloatingActionButton for a more prominent look
-                    LargeFloatingActionButton(
-                        onClick = { navController.navigate(Screen.PasswordDetail.createRoute("new")) }
+                    // **UI UPDATE**: Using standard FAB with CircleShape
+                    FloatingActionButton (
+                        onClick = { navController.navigate(Screen.PasswordDetail.createRoute("new")) },
+                        shape = CircleShape
                     ) {
                         Icon(
-                            Icons.Default.PostAdd,
+                            Icons.Default.Add,
                             contentDescription = "Add Password",
-                            modifier = Modifier.size(FloatingActionButtonDefaults.LargeIconSize)
+                            modifier = Modifier.size(30.dp)
                         )
                     }
                 }

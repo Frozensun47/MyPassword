@@ -1,4 +1,4 @@
-// File: ui/theme/Theme.kt
+// FILE: com/myapplications/mypasswords/ui/theme/Theme.kt
 package com.myapplications.mypasswords.ui.theme
 
 import android.app.Activity
@@ -11,43 +11,66 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import androidx.compose.ui.graphics.Color
-// Dark Color Scheme
+
 private val DarkColorScheme = darkColorScheme(
-    primary = CyberPrimary,
-    onPrimary = CyberOnPrimary,
-    primaryContainer = CyberPrimaryContainer,
-    secondary = CyberLightSecondary,
-    background = CyberDarkBackground,
-    surface = CyberDarkSurface,
-    onBackground = CyberDarkOnSurface,
-    onSurface = CyberDarkOnSurface,
-    error = CyberError,
-    onError = Color.White
+    primary = BluePrimaryDark,
+    onPrimary = OnBluePrimaryDark,
+    primaryContainer = BluePrimaryContainerDark,
+    onPrimaryContainer = OnBluePrimaryContainerDark,
+    secondary = BlueSecondaryDark,
+    onSecondary = OnBlueSecondaryDark,
+    secondaryContainer = BlueSecondaryContainerDark,
+    onSecondaryContainer = OnBlueSecondaryContainerDark,
+    tertiary = BlueTertiaryDark,
+    onTertiary = OnBlueTertiaryDark,
+    tertiaryContainer = BlueTertiaryContainerDark,
+    onTertiaryContainer = OnBlueTertiaryContainerDark,
+    error = BlueErrorDark,
+    onError = OnBlueErrorDark,
+    errorContainer = BlueErrorContainerDark,
+    onErrorContainer = OnBlueErrorContainerDark,
+    background = BlueBackgroundDark,
+    onBackground = OnBlueBackgroundDark,
+    surface = BlueSurfaceDark,
+    onSurface = OnBlueSurfaceDark,
+    surfaceVariant = BlueSurfaceVariantDark,
+    onSurfaceVariant = OnBlueSurfaceVariantDark,
+    outline = BlueOutlineDark
 )
 
-// Light Color Scheme
 private val LightColorScheme = lightColorScheme(
-    primary = CyberPrimary,
-    onPrimary = CyberOnPrimary,
-    primaryContainer = CyberPrimaryContainer,
-    secondary = CyberLightSecondary,
-    background = CyberLightBackground,
-    surface = CyberLightSurface,
-    onBackground = CyberLightOnSurface,
-    onSurface = CyberLightOnSurface,
-    error = CyberError,
-    onError = Color.White
+    primary = BluePrimaryLight,
+    onPrimary = OnBluePrimaryLight,
+    primaryContainer = BluePrimaryContainerLight,
+    onPrimaryContainer = OnBluePrimaryContainerLight,
+    secondary = BlueSecondaryLight,
+    onSecondary = OnBlueSecondaryLight,
+    secondaryContainer = BlueSecondaryContainerLight,
+    onSecondaryContainer = OnBlueSecondaryContainerLight,
+    tertiary = BlueTertiaryLight,
+    onTertiary = OnBlueTertiaryLight,
+    tertiaryContainer = BlueTertiaryContainerLight,
+    onTertiaryContainer = OnBlueTertiaryContainerLight,
+    error = BlueErrorLight,
+    onError = OnBlueErrorLight,
+    errorContainer = BlueErrorContainerLight,
+    onErrorContainer = OnBlueErrorContainerLight,
+    background = BlueBackgroundLight,
+    onBackground = OnBlueBackgroundLight,
+    surface = BlueSurfaceLight,
+    onSurface = OnBlueSurfaceLight,
+    surfaceVariant = BlueSurfaceVariantLight,
+    onSurfaceVariant = OnBlueSurfaceVariantLight,
+    outline = BlueOutlineLight
 )
 
 @Composable
 fun MyPasswordsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
+    // **THE CHANGE IS HERE**: Dynamic color is now enabled by default.
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
@@ -77,7 +100,6 @@ fun MyPasswordsTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        shapes = Shapes,
         content = content
     )
 }

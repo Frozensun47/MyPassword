@@ -13,8 +13,8 @@ android {
         applicationId = "com.myapplications.mypasswords"
         minSdk = 28
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.1-closed-beta"
+        versionCode = 5
+        versionName = "2.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

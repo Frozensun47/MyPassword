@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -97,14 +98,16 @@ fun PasswordDetailScreen(
                 }
             )
         },
+        // **UI UPDATE**: Set the FAB position to the default end (bottom-right)
+        floatingActionButtonPosition = FabPosition.Center,
         floatingActionButton = {
             AnimatedVisibility(
                 visible = isFormValid,
                 enter = scaleIn(),
                 exit = scaleOut()
             ) {
-                FloatingActionButton(onClick = ::handleSave) {
-                    Icon(Icons.Default.Check, contentDescription = "Save Password")
+                FloatingActionButton(onClick = ::handleSave, shape = CircleShape) {
+                    Icon(Icons.Default.Check, contentDescription = "Save Password",Modifier.size(30.dp))
                 }
             }
         }

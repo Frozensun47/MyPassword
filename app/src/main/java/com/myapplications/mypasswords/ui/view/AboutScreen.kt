@@ -66,7 +66,7 @@ fun AboutScreen(navController: NavController) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Version 1.0.0",
+                        text = "Version 2.8",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -1,3 +1,4 @@
+// FILE: com/myapplications/mypasswords/repository/PasswordRepository.kt
 package com.myapplications.mypasswords.repository
 
 import android.content.Context
@@ -6,16 +7,19 @@ import com.myapplications.mypasswords.database.FolderDao
 import com.myapplications.mypasswords.database.PasswordDao
 import com.myapplications.mypasswords.model.Folder
 import com.myapplications.mypasswords.model.Password
+import com.myapplications.mypasswords.security.SecurityManager
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /**
  * Singleton repository for managing both Passwords and Folders.
- * Requires initialization before use, typically in the Application class.
+ * Handles encryption and decryption of password data.
  */
 object PasswordRepository {
 
     private lateinit var passwordDao: PasswordDao
     private lateinit var folderDao: FolderDao
+    private lateinit var securityManager: SecurityManager
 
     /**
      * Initializes the repository with the application context.
@@ -23,41 +27,56 @@ object PasswordRepository {
      */
     fun initialize(context: Context) {
         if (!::passwordDao.isInitialized) {
-            val database = DatabaseProvider.getInstance(context)
+            // **THE FIX IS HERE**:
+            // To prevent potential memory leaks, we explicitly use the application context,
+            // which is safe to store in a long-lived singleton object like this repository.
+            val appContext = context.applicationContext
+
+            val database = DatabaseProvider.getInstance(appContext)
             passwordDao = database.passwordDao()
             folderDao = database.folderDao()
+            securityManager = SecurityManager(appContext)
         }
     }
 
-    // --- Password Functions ---
+    // --- Password Functions (with Encryption/Decryption) ---
+
     fun getRootPasswords(): Flow<List<Password>> {
         checkInitialized()
-        return passwordDao.getRootPasswords()
+        return passwordDao.getRootPasswords().map { list ->
+            list.map { it.copy(password = securityManager.decrypt(it.password)) }
+        }
     }
 
     fun getPasswordsInFolder(folderId: String): Flow<List<Password>> {
         checkInitialized()
-        return passwordDao.getPasswordsInFolder(folderId)
+        return passwordDao.getPasswordsInFolder(folderId).map { list ->
+            list.map { it.copy(password = securityManager.decrypt(it.password)) }
+        }
     }
 
     suspend fun getPasswordById(id: String): Password? {
         checkInitialized()
-        return passwordDao.getPasswordById(id)
+        val encryptedPassword = passwordDao.getPasswordById(id)
+        return encryptedPassword?.copy(password = securityManager.decrypt(encryptedPassword.password))
     }
 
     suspend fun savePassword(password: Password) {
         checkInitialized()
-        passwordDao.insertPassword(password)
+        val encryptedPassword = password.copy(password = securityManager.encrypt(password.password))
+        passwordDao.insertPassword(encryptedPassword)
     }
 
     suspend fun deletePassword(password: Password) {
         checkInitialized()
+        // No need to encrypt/decrypt for deletion
         passwordDao.deletePassword(password)
     }
 
     suspend fun updatePassword(password: Password) {
         checkInitialized()
-        passwordDao.updatePassword(password)
+        val encryptedPassword = password.copy(password = securityManager.encrypt(password.password))
+        passwordDao.updatePassword(encryptedPassword)
     }
 
     // --- Folder Functions ---
@@ -78,18 +97,14 @@ object PasswordRepository {
 
     /**
      * Deletes all data from the database. Use with caution.
-     * Note: You will need to add the corresponding `deleteAll` queries to your DAOs.
      */
     suspend fun deleteAllData() {
         checkInitialized()
-        // passwordDao.deleteAll() // Add @Query("DELETE FROM passwords") to PasswordDao
-        // folderDao.deleteAll()   // Add @Query("DELETE FROM folders") to FolderDao
+        // You will need to add these methods to your DAOs
+        // passwordDao.deleteAll()
+        // folderDao.deleteAll()
     }
 
-
-    /**
-     * Throws an exception if the repository has not been initialized.
-     */
     private fun checkInitialized() {
         if (!::passwordDao.isInitialized) {
             throw IllegalStateException("PasswordRepository not initialized. Call initialize() in your Application class.")

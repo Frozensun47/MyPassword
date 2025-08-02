@@ -1,28 +1,53 @@
-// File: ui/theme/Color.kt
 package com.myapplications.mypasswords.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 🔷 Primary Colors (Cyber Blue)
-val CyberPrimary = Color(0xFF00B0FF)           // Bright cyan-blue
-val CyberOnPrimary = Color(0xFF003659)         // Dark text on primary
-val CyberPrimaryContainer = Color(0xFF005EA2)  // Deep navy for buttons/cards
+// Light Theme Blue Colors
+val BluePrimaryLight = Color(0xFF0061A4)
+val OnBluePrimaryLight = Color(0xFFFFFFFF)
+val BluePrimaryContainerLight = Color(0xFFD1E4FF)
+val OnBluePrimaryContainerLight = Color(0xFF001D36)
+val BlueSecondaryLight = Color(0xFF535F70)
+val OnBlueSecondaryLight = Color(0xFFFFFFFF)
+val BlueSecondaryContainerLight = Color(0xFFD7E3F7)
+val OnBlueSecondaryContainerLight = Color(0xFF101C2B)
+val BlueTertiaryLight = Color(0xFF6B5778)
+val OnBlueTertiaryLight = Color(0xFFFFFFFF)
+val BlueTertiaryContainerLight = Color(0xFFF2DAFF)
+val OnBlueTertiaryContainerLight = Color(0xFF251431)
+val BlueErrorLight = Color(0xFFBA1A1A)
+val OnBlueErrorLight = Color(0xFFFFFFFF)
+val BlueErrorContainerLight = Color(0xFFFFDAD6)
+val OnBlueErrorContainerLight = Color(0xFF410002)
+val BlueBackgroundLight = Color(0xFFFDFBFF)
+val OnBlueBackgroundLight = Color(0xFF1A1C1E)
+val BlueSurfaceLight = Color(0xFFFDFBFF)
+val OnBlueSurfaceLight = Color(0xFF1A1C1E)
+val BlueSurfaceVariantLight = Color(0xFFDFE2EB)
+val OnBlueSurfaceVariantLight = Color(0xFF43474E)
+val BlueOutlineLight = Color(0xFF73777F)
 
-// 🌑 Dark Theme
-val CyberDarkBackground = Color(0xFF0A0F1F)    // Deep space blue
-val CyberDarkSurface = Color(0xFF11182A)       // Card-like surface
-val CyberDarkOnSurface = Color(0xFFE6F0FF)     // Glowing soft white text
-
-// 🌕 Light Theme
-val CyberLightBackground = Color(0xFFF8FAFC)   // Clean off-white
-val CyberLightSurface = Color(0xFFFFFFFF)      // Pure white cards
-val CyberLightOnSurface = Color(0xFF121B2C)    // Soft dark text
-val CyberLightSecondary = Color(0xFF5C6B80)    // Muted blue-gray
-
-// ⚠️ Error & Success
-val CyberError = Color(0xFFFF4D6D)             // Soft red
-val CyberSuccess = Color(0xFF00C853)           // Vibrant green
-
-// 🌟 Accent & Glow (for highlights)
-val CyberAccent = Color(0xFF00E5FF)            // Neon cyan glow
-val CyberGlow = CyberPrimary.copy(alpha = 0.2f) // For subtle effects
+// Dark Theme Blue Colors
+val BluePrimaryDark = Color(0xFF9ECAFF)
+val OnBluePrimaryDark = Color(0xFF003258)
+val BluePrimaryContainerDark = Color(0xFF00497D)
+val OnBluePrimaryContainerDark = Color(0xFFD1E4FF)
+val BlueSecondaryDark = Color(0xFFBBC7DB)
+val OnBlueSecondaryDark = Color(0xFF253140)
+val BlueSecondaryContainerDark = Color(0xFF3B4858)
+val OnBlueSecondaryContainerDark = Color(0xFFD7E3F7)
+val BlueTertiaryDark = Color(0xFFD6BEE4)
+val OnBlueTertiaryDark = Color(0xFF3B2948)
+val BlueTertiaryContainerDark = Color(0xFF523F5F)
+val OnBlueTertiaryContainerDark = Color(0xFFF2DAFF)
+val BlueErrorDark = Color(0xFFFFB4AB)
+val OnBlueErrorDark = Color(0xFF690005)
+val BlueErrorContainerDark = Color(0xFF93000A)
+val OnBlueErrorContainerDark = Color(0xFFFFDAD6)
+val BlueBackgroundDark = Color(0xFF1A1C1E)
+val OnBlueBackgroundDark = Color(0xFFE2E2E6)
+val BlueSurfaceDark = Color(0xFF1A1C1E)
+val OnBlueSurfaceDark = Color(0xFFE2E2E6)
+val BlueSurfaceVariantDark = Color(0xFF43474E)
+val OnBlueSurfaceVariantDark = Color(0xFFC3C7CF)
+val BlueOutlineDark = Color(0xFF8D9199)

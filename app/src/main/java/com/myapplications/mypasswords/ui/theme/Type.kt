@@ -1,4 +1,4 @@
-// File: ui/theme/Typography.kt
+// FILE: com/myapplications/mypasswords/ui/theme/Type.kt
 package com.myapplications.mypasswords.ui.theme
 
 import androidx.compose.material3.Typography
@@ -7,7 +7,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Define typography for a clean, modern, secure feel
+// Set of Material typography styles to start with
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.Default,
@@ -38,11 +38,11 @@ val Typography = Typography(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
-        color = CyberLightSecondary // Subtle gray in both themes
+        lineHeight = 20.sp
+        // Color is intentionally omitted here to allow for theme-adaptive colors at the component level.
     ),
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Monospace, // Use monospace for passwords
+        fontFamily = FontFamily.Monospace, // Monospace is great for consistency
         fontWeight = FontWeight.W500,
         fontSize = 12.sp,
         lineHeight = 16.sp,

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.myapplications.mypasswords.model.Folder
+import com.myapplications.mypasswords.model.Password
 import com.myapplications.mypasswords.navigation.Screen
 import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
 
@@ -89,7 +90,14 @@ fun FolderDetailScreen(
                     TopAppBar(
                         title = { Text(folderName) },
                         navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
+                            IconButton(onClick = {
+                                // **THE FIX IS HERE**:
+                                // This check prevents multiple back presses from firing before
+                                // navigation can complete, which stops the app from crashing.
+                                if (navController.currentBackStackEntry?.destination?.route == Screen.FolderDetail.route) {
+                                    navController.popBackStack()
+                                }
+                            }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
                         },

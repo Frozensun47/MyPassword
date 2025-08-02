@@ -1,3 +1,4 @@
+// FILE: com/myapplications/mypasswords/ui/view/OnboardingScreen.kt
 package com.myapplications.mypasswords.ui.view
 
 import androidx.compose.animation.core.animateDpAsState
@@ -7,8 +8,10 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PhonelinkLock
+import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -23,24 +26,35 @@ import androidx.navigation.NavController
 import com.myapplications.mypasswords.navigation.Screen
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, )
 @Composable
 fun OnboardingScreen(navController: NavController) {
+    // Updated and expanded list of onboarding pages
     val pages = listOf(
         OnboardingPage(
-            icon = Icons.Default.Lock,
-            title = "Ultimate Security",
-            description = "Your data is secured with AES-256, one of the strongest encryption standards. It never leaves your device."
+            icon = Icons.Default.Celebration,
+            title = "Welcome to MyPasswords",
+            description = "A simple, secure, and completely offline place to store your most important information."
         ),
         OnboardingPage(
-            icon = Icons.Default.PhonelinkLock,
-            title = "Strictly Offline",
-            description = "This app works completely offline. There are no servers, no cloud sync, and no internet access required."
+            icon = Icons.Default.CloudOff,
+            title = "100% Offline & Private",
+            description = "This app does not connect to the internet. We collect no data, and your passwords never leave your device."
+        ),
+        OnboardingPage(
+            icon = Icons.Default.VerifiedUser,
+            title = "Military-Grade Encryption",
+            description = "All of your data is encrypted and secured with AES-256, the same standard used by governments."
+        ),
+        OnboardingPage(
+            icon = Icons.Default.Folder,
+            title = "Simple Organization",
+            description = "Group your passwords into folders to keep your digital life tidy and easy to manage."
         ),
         OnboardingPage(
             icon = Icons.Default.Warning,
             title = "Your Responsibility",
-            description = "Because there are no backups, if you forget your PIN or lose your phone, your data is gone forever. Your PIN cannot be changed."
+            description = "Because this app is completely offline, there is no account recovery. If you forget your PIN, your data cannot be recovered."
         )
     )
     val pagerState = rememberPagerState(pageCount = { pages.size })
@@ -87,7 +101,7 @@ fun OnboardingScreen(navController: NavController) {
                         )
                     }
                 }
-                // Next Button
+                // Next/Get Started Button
                 Button(
                     onClick = {
                         scope.launch {
@@ -105,7 +119,9 @@ fun OnboardingScreen(navController: NavController) {
                         .padding(horizontal = 16.dp)
                         .padding(bottom = 16.dp)
                 ) {
-                    Text("Next")
+                    // Change button text on the last page
+                    val buttonText = if (pagerState.currentPage == pages.size - 1) "Get Started" else "Next"
+                    Text(buttonText)
                 }
             }
         }

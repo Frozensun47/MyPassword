@@ -27,5 +27,9 @@ interface PasswordDao {
     suspend fun getPasswordById(passwordId: String): Password?
 
     @Query("SELECT * FROM passwords")
-    fun getAllPasswords(): Flow<List<Password>> // Keep for settings/export etc.
+    fun getAllPasswords(): Flow<List<Password>>
+
+    @Query("DELETE FROM passwords")
+    suspend fun deleteAll()
+
 }

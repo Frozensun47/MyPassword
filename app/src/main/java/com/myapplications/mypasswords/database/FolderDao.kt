@@ -20,4 +20,7 @@ interface FolderDao {
 
     @Query("SELECT * FROM folders WHERE id = :folderId")
     suspend fun getFolderById(folderId: String): Folder?
+
+    @Query("DELETE FROM folders")
+    suspend fun deleteAll()
 }

@@ -1,12 +1,16 @@
+// FILE: com/myapplications/mypasswords/ui/view/SharedComponents.kt
 package com.myapplications.mypasswords.ui.view
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+
 import androidx.compose.foundation.Image
+
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,9 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -84,7 +86,6 @@ fun SelectionTopAppBar(
         )
     )
 }
-
 
 @Composable
 fun PasswordCard(
@@ -202,10 +203,22 @@ fun MoveToFolderDialog(
     onConfirm: (folderId: String?) -> Unit
 ) {
     val folders by viewModel.getAllFolders().collectAsState(initial = emptyList())
+    var showFolderEditDialog by remember { mutableStateOf(false) }
+
+    // This dialog will appear on top of the current one when triggered
+    if (showFolderEditDialog) {
+        FolderEditDialog(
+            onDismiss = { showFolderEditDialog = false },
+            onConfirm = { folderName ->
+                viewModel.saveFolder(Folder(name = folderName))
+                showFolderEditDialog = false
+            }
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Move $selectedItemCount item(s) to...") },
+        title = { Text("Move to") },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -222,6 +235,13 @@ fun MoveToFolderDialog(
                         icon = Icons.Default.Folder,
                         text = folder.name,
                         onClick = { onConfirm(folder.id) }
+                    )
+                }
+                item {
+                    DialogRow(
+                        icon = Icons.Default.CreateNewFolder,
+                        text = "Create New Folder",
+                        onClick = { showFolderEditDialog = true }
                     )
                 }
             }

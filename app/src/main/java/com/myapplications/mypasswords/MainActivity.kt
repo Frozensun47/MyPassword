@@ -1,3 +1,4 @@
+// FILE: com/myapplications/mypasswords/MainActivity.kt
 package com.myapplications.mypasswords
 
 import android.os.Bundle
@@ -17,8 +18,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // --- INITIALIZE THE REPOSITORY ---
-        PasswordRepository.initialize(this)
+        // Initialize the repository as soon as the app starts.
+        PasswordRepository.initialize(applicationContext)
 
         setContent {
             MyPasswordsTheme {
@@ -28,6 +29,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     AppLifecycleHandler(navController = navController)
+
                     AppNavigation(navController = navController)
                 }
             }

@@ -1,6 +1,7 @@
 // FILE: com/myapplications/mypasswords/ui/view/PinScreen.kt
 package com.myapplications.mypasswords.ui.view
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -10,7 +11,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -101,6 +102,7 @@ fun PinScreen(
     }
 }
 
+@SuppressLint("UseOfNonLambdaOffsetOverload")
 @Composable
 fun PinIndicator(pinLength: Int, error: Boolean) {
     val shake by animateFloatAsState(
@@ -148,7 +150,7 @@ fun PinKeypad(onNumberClick: (String) -> Unit, onBackspaceClick: () -> Unit) {
                     onClick = { onNumberClick(item) }
                 )
                 item == "back" -> KeypadButton(
-                    icon = Icons.Default.Backspace,
+                    icon = Icons.AutoMirrored.Filled.Backspace,
                     onClick = onBackspaceClick
                 )
                 else -> Spacer(modifier = Modifier.size(72.dp)) // Empty space for layout

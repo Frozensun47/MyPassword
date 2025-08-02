@@ -111,5 +111,14 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 folderName = folderName
             )
         }
+        composable(Screen.Main.route) {
+            MainScreen(navController = navController)
+        }
+        composable(Screen.Settings.route) {
+            SettingsScreen(navController = navController)
+        }
+        composable(Screen.About.route) {
+            AboutScreen(navController = navController)
+        }
     }
 }
