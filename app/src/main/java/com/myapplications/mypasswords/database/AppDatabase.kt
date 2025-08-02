@@ -1,30 +1,31 @@
+// FILE: com/myapplications/mypasswords/database/AppDatabase.kt
 package com.myapplications.mypasswords.database
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.myapplications.mypasswords.model.Folder
 import com.myapplications.mypasswords.model.Password
 import com.myapplications.mypasswords.security.SecurityManager
 import kotlinx.coroutines.runBlocking
 import net.zetetic.database.sqlcipher.SQLiteConnection
-import net.zetetic.database.sqlcipher.SQLiteDatabase
 import net.zetetic.database.sqlcipher.SQLiteDatabaseHook
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 /**
- * The Room Database class. It no longer manages its own instance directly
- * to better handle asynchronous initialization.
+ * The Room Database class for the application.
+ * It now includes both Password and Folder entities.
  */
-@Database(entities = [Password::class], version = 1, exportSchema = false)
+@Database(entities = [Password::class, Folder::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun passwordDao(): PasswordDao
+    abstract fun folderDao(): FolderDao
 }
 
 /**
  * A singleton object to provide the AppDatabase instance.
- * This pattern ensures the database is created only once and handles
- * the async retrieval of the encryption passphrase.
+ * This pattern ensures the encrypted database is created only once.
  */
 object DatabaseProvider {
 
@@ -49,12 +50,9 @@ object DatabaseProvider {
         // Define the hook to configure the database after the key is set.
         val hook = object : SQLiteDatabaseHook {
             override fun preKey(connection: SQLiteConnection) {}
-            override fun postKey(connection: SQLiteConnection?) {
-            }
+            override fun postKey(connection: SQLiteConnection?) {}
         }
 
-        // The factory constructor is updated to include the 'clearPassphrase' boolean argument.
-        // Setting this to 'true' is recommended for security.
         val factory = SupportOpenHelperFactory(passphrase, hook, true)
 
         // Build the Room database instance with the encryption factory
@@ -64,6 +62,9 @@ object DatabaseProvider {
             "mypasswords.db"
         )
             .openHelperFactory(factory)
+            // This will discard the old data and create the new schema.
+            // For a production app, a proper migration would be needed.
+            .fallbackToDestructiveMigration(false)
             .build()
     }
 }

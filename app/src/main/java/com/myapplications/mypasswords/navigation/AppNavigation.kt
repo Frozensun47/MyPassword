@@ -1,14 +1,18 @@
+// FILE: com/myapplications/mypasswords/navigation/AppNavigation.kt
 package com.myapplications.mypasswords.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.myapplications.mypasswords.ui.view.*
 import com.myapplications.mypasswords.ui.viewmodel.PinViewModel
 
 /**
- * A cleaner, unambiguous definition for all navigation destinations.
+ * Defines all possible navigation destinations in the app with strongly-typed routes.
  */
 sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
@@ -19,25 +23,37 @@ sealed class Screen(val route: String) {
     data object Settings : Screen("settings")
     data object About : Screen("about")
 
-    // Use 'object' for routes with arguments and provide a clear helper function.
-    data object PasswordDetail : Screen("password_detail/{passwordId}") {
-        fun createRoute(passwordId: String?) = "password_detail/$passwordId"
+    // Route for viewing the contents of a single folder.
+    data object FolderDetail : Screen("folder_detail/{folderId}/{folderName}") {
+        fun createRoute(folderId: String, folderName: String) = "folder_detail/$folderId/$folderName"
     }
 
+    // Route for verifying PIN before showing a password's details.
     data object PasswordPinVerify : Screen("password_pin_verify/{passwordId}") {
         fun createRoute(passwordId: String) = "password_pin_verify/$passwordId"
+    }
+
+    // Route for creating or editing a password.
+    // folderId is optional and used when creating a new password inside a specific folder.
+    data object PasswordDetail : Screen("password_detail?passwordId={passwordId}&folderId={folderId}") {
+        fun createRoute(passwordId: String, folderId: String? = null): String {
+            val route = "password_detail?passwordId=$passwordId"
+            return if (folderId != null) "$route&folderId=$folderId" else route
+        }
     }
 }
 
 @Composable
-fun AppNavigation(navController: NavHostController) {
+fun AppNavigation(navController: NavHostController = rememberNavController()) {
     NavHost(navController = navController, startDestination = Screen.Splash.route) {
-        composable(Screen.Splash.route) {
-            SplashScreen(navController)
-        }
-        composable(Screen.Onboarding.route) {
-            OnboardingScreen(navController)
-        }
+        // --- Core App Flow ---
+        composable(Screen.Splash.route) { SplashScreen(navController) }
+        composable(Screen.Onboarding.route) { OnboardingScreen(navController) }
+        composable(Screen.Settings.route) { SettingsScreen(navController) }
+        composable(Screen.About.route) { AboutScreen(navController) }
+        composable(Screen.Main.route) { MainScreen(navController) }
+
+        // --- PIN Authentication Flow ---
         composable(Screen.PinSetup.route) {
             PinScreen(mode = PinViewModel.PinMode.SETUP, onSuccess = {
                 navController.navigate(Screen.Main.route) { popUpTo(Screen.PinSetup.route) { inclusive = true } }
@@ -48,28 +64,52 @@ fun AppNavigation(navController: NavHostController) {
                 navController.navigate(Screen.Main.route) { popUpTo(Screen.PinAuth.route) { inclusive = true } }
             })
         }
-        composable(Screen.Main.route) {
-            MainScreen(navController = navController)
-        }
-        composable(Screen.Settings.route) {
-            SettingsScreen(navController = navController)
-        }
-        composable(Screen.About.route) {
-            AboutScreen(navController = navController)
-        }
-        composable(Screen.PasswordPinVerify.route) { backStackEntry ->
+        composable(
+            route = Screen.PasswordPinVerify.route,
+            arguments = listOf(navArgument("passwordId") { type = NavType.StringType })
+        ) { backStackEntry ->
             val passwordId = backStackEntry.arguments?.getString("passwordId") ?: ""
             PinScreen(mode = PinViewModel.PinMode.VERIFY, onSuccess = {
+                // **THE FIX IS HERE**
                 navController.navigate(Screen.PasswordDetail.createRoute(passwordId)) {
-                    popUpTo(Screen.PasswordPinVerify.route) { inclusive = true }
+                    // This removes the PIN screen from the back stack, so you don't return to it.
+                    popUpTo(Screen.PasswordPinVerify.route) {
+                        inclusive = true
+                    }
                 }
             })
         }
-        composable(Screen.PasswordDetail.route) { backStackEntry ->
-            val passwordId = backStackEntry.arguments?.getString("passwordId")
-            if (passwordId != null) {
-                PasswordDetailScreen(navController = navController, passwordId = passwordId)
-            }
+
+        // --- Password and Folder Detail Screens ---
+        composable(
+            route = Screen.PasswordDetail.route,
+            arguments = listOf(
+                navArgument("passwordId") { type = NavType.StringType },
+                navArgument("folderId") { type = NavType.StringType; nullable = true }
+            )
+        ) { backStackEntry ->
+            PasswordDetailScreen(
+                navController = navController,
+                passwordId = backStackEntry.arguments?.getString("passwordId"),
+                folderId = backStackEntry.arguments?.getString("folderId")
+            )
+        }
+
+        composable(
+            route = Screen.FolderDetail.route,
+            arguments = listOf(
+                navArgument("folderId") { type = NavType.StringType },
+                navArgument("folderName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val folderId = backStackEntry.arguments?.getString("folderId") ?: ""
+            val folderName = backStackEntry.arguments?.getString("folderName") ?: ""
+
+            FolderDetailScreen(
+                navController = navController,
+                folderId = folderId,
+                folderName = folderName
+            )
         }
     }
 }

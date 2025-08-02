@@ -1,11 +1,15 @@
+// FILE: com/myapplications/mypasswords/ui/viewmodel/MainViewModel.kt
 package com.myapplications.mypasswords.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.myapplications.mypasswords.model.Folder
+import com.myapplications.mypasswords.model.HomeItem
 import com.myapplications.mypasswords.model.Password
 import com.myapplications.mypasswords.repository.PasswordRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -15,76 +19,96 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         initialize(application)
     }
 
-    /**
-     * Exposes the Flow of passwords from the repository to be collected by the UI.
-     */
-    fun getPasswords(): Flow<List<Password>> {
-        return repository.getPasswords()
+    // Combine folders and root passwords into a single list of HomeItems
+    val homeItems: Flow<List<HomeItem>> = combine(
+        repository.getAllFolders(),
+        repository.getRootPasswords()
+    ) { folders, passwords ->
+        val folderItems = folders.map { HomeItem.FolderItem(it) }
+        val passwordItems = passwords.map { HomeItem.PasswordItem(it) }
+        folderItems + passwordItems
     }
 
+    fun getPasswordsInFolder(folderId: String): Flow<List<Password>> {
+        return repository.getPasswordsInFolder(folderId)
+    }
 
-    /**
-     * Fetches a single password by its ID from the repository.
-     * This is a suspend function and must be called from a coroutine.
-     */
+    fun getAllFolders(): Flow<List<Folder>> = repository.getAllFolders()
+
+    fun savePassword(password: Password) = viewModelScope.launch {
+        repository.savePassword(password)
+    }
+
+    fun deletePassword(password: Password) = viewModelScope.launch {
+        repository.deletePassword(password)
+    }
+
     suspend fun getPasswordById(id: String): Password? {
-        return repository.getPassword(id)
+        return repository.getPasswordById(id)
     }
 
-    /**
-     * Saves a new password or updates an existing one.
-     */
-    fun savePassword(password: Password) {
-        viewModelScope.launch {
-            repository.savePassword(password)
-        }
+    fun saveFolder(folder: Folder) = viewModelScope.launch {
+        repository.saveFolder(folder)
     }
 
-    /**
-     * Deletes a given password.
-     */
-    fun deletePassword(password: Password) {
-        viewModelScope.launch {
-            repository.deletePassword(password)
-        }
+    fun deleteFolder(folder: Folder) = viewModelScope.launch {
+        repository.deleteFolder(folder)
     }
 
-    /**
-     * Updates the folder name for a specific password.
-     * The operation is launched in a coroutine.
-     */
-    fun updatePasswordFolder(passwordId: String, folderName: String) {
-        viewModelScope.launch {
-            val password = repository.getPassword(passwordId)
+    fun movePasswordToFolder(password: Password, folderId: String?) = viewModelScope.launch {
+        val updatedPassword = password.copy(folderId = folderId)
+        repository.updatePassword(updatedPassword)
+    }
+    fun movePasswordsToFolder(passwordIds: Set<String>, folderId: String?) = viewModelScope.launch {
+        passwordIds.forEach { id ->
+            val password = repository.getPasswordById(id)
             password?.let {
-                // Set folder to null if the input is blank, otherwise use the trimmed name
-                val finalFolderName = folderName.trim().takeIf { it.isNotBlank() }
-                val updatedPassword = it.copy(folder = finalFolderName)
-                repository.savePassword(updatedPassword)
+                val updatedPassword = it.copy(folderId = folderId)
+                repository.updatePassword(updatedPassword)
+            }
+        }
+    }
+    // Add these two functions to your MainViewModel.kt file
+
+    fun deleteItems(items: Set<HomeItem>) = viewModelScope.launch {
+        items.forEach { item ->
+            when (item) {
+                is HomeItem.FolderItem -> repository.deleteFolder(item.folder)
+                is HomeItem.PasswordItem -> repository.deletePassword(item.password)
             }
         }
     }
 
-    /**
-     * Updates the color hex for a specific password.
-     * The operation is launched in a coroutine.
-     */
-    fun updatePasswordColor(passwordId: String, colorHex: String) {
-        viewModelScope.launch {
-            val password = repository.getPassword(passwordId)
-            password?.let {
-                // Use null if the color is white, to signify "default"
-                val finalColorHex = if (colorHex.equals("#FFFFFF", ignoreCase = true)) null else colorHex
-                val updatedPassword = it.copy(colorHex = finalColorHex)
-                repository.savePassword(updatedPassword)
+    fun moveItemsToFolder(items: Set<HomeItem>, folderId: String?) = viewModelScope.launch {
+        items.forEach { item ->
+            if (item is HomeItem.PasswordItem) {
+                val updatedPassword = item.password.copy(folderId = folderId)
+                repository.updatePassword(updatedPassword)
             }
         }
     }
 
-    /**
-     * Deletes all passwords from the database.
-     * This is the new function you requested.
-     */
+    // Add these two functions to your MainViewModel.kt file
+
+    fun movePasswordsToFolderByIds(passwordIds: Set<String>, folderId: String?) = viewModelScope.launch {
+        passwordIds.forEach { id ->
+            val password = repository.getPasswordById(id)
+            password?.let {
+                val updatedPassword = it.copy(folderId = folderId)
+                repository.updatePassword(updatedPassword)
+            }
+        }
+    }
+
+    fun deletePasswordsByIds(passwordIds: Set<String>) = viewModelScope.launch {
+        passwordIds.forEach { id ->
+            val password = repository.getPasswordById(id)
+            password?.let {
+                repository.deletePassword(it)
+            }
+        }
+    }
+
     fun deleteAllData() {
         viewModelScope.launch {
             repository.deleteAllData()

@@ -1,7 +1,8 @@
+// FILE: com/myapplications/mypasswords/ui/viewmodel/PinViewModel.kt
 package com.myapplications.mypasswords.ui.viewmodel
 
-import android.content.Context
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.myapplications.mypasswords.security.SecurityManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,88 +10,121 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class PinViewModel : ViewModel() {
+// This data class holds all the information the UI needs to draw itself.
+data class PinScreenUiState(
+    val title: String = "",
+    val subtitle: String = "",
+    val enteredPin: String = "",
+    val showError: Boolean = false,
+    val isSuccess: Boolean = false
+)
 
-    // Define the PinMode enum right here
-    enum class PinMode(val title: String, val subtitle: String) {
-        SETUP("Set Your PIN", "Create a 4-8 digit PIN. This cannot be changed later."),
-        AUTHENTICATE("Welcome Back", "Enter your PIN to unlock the app."),
-        VERIFY("Security Check", "Re-enter your PIN to continue.")
+class PinViewModel(application: Application) : AndroidViewModel(application) {
+
+    companion object {
+        const val PIN_LENGTH = 6 // Changed to 6 digits
     }
 
-    private val _pinState = MutableStateFlow(PinScreenState())
-    val pinState = _pinState.asStateFlow()
+    private val securityManager = SecurityManager(application)
 
-    fun onPinChanged(newPin: String) {
-        if (newPin.length <= 8 && newPin.all { it.isDigit() }) {
-            _pinState.update { it.copy(pin = newPin, errorMessage = null) }
+    private val _uiState = MutableStateFlow(PinScreenUiState())
+    val uiState = _uiState.asStateFlow()
+
+    private var currentMode: PinMode = PinMode.AUTHENTICATE
+    private var tempPin: String = "" // Used for confirming PIN in setup mode
+    private var onSuccessCallback: () -> Unit = {}
+
+    // This is called once when the screen is created.
+    fun initialize(mode: PinMode, onSuccess: () -> Unit) {
+        currentMode = mode
+        onSuccessCallback = onSuccess
+        _uiState.update {
+            it.copy(
+                title = mode.title,
+                subtitle = mode.subtitle,
+                enteredPin = "",
+                showError = false,
+                isSuccess = false
+            )
         }
     }
 
-    suspend fun checkInitialLockout(context: Context) {
-        val securityManager = SecurityManager(context)
-        if (securityManager.isLockedOut()) {
-            _pinState.update {
+    // Called every time a number button is pressed.
+    fun onPinDigit(digit: String) {
+        if (_uiState.value.enteredPin.length < PIN_LENGTH) {
+            _uiState.update { it.copy(enteredPin = it.enteredPin + digit) }
+
+            // If the PIN is now complete, process it.
+            if (_uiState.value.enteredPin.length == PIN_LENGTH) {
+                processPin()
+            }
+        }
+    }
+
+    // Called when the backspace button is pressed.
+    fun onBackspace() {
+        if (_uiState.value.enteredPin.isNotEmpty()) {
+            _uiState.update { it.copy(enteredPin = it.enteredPin.dropLast(1)) }
+        }
+    }
+
+    // Resets the error state (e.g., after the shake animation).
+    fun clearError() {
+        _uiState.update { it.copy(showError = false) }
+    }
+
+    private fun processPin() {
+        viewModelScope.launch {
+            when (currentMode) {
+                PinMode.SETUP -> handlePinSetup()
+                PinMode.AUTHENTICATE, PinMode.VERIFY -> handlePinVerification()
+            }
+        }
+    }
+
+    private suspend fun handlePinSetup() {
+        val enteredPin = _uiState.value.enteredPin
+        if (tempPin.isEmpty()) {
+            // First time entering the PIN
+            tempPin = enteredPin
+            _uiState.update {
                 it.copy(
-                    isLocked = true,
-                    lockoutUntil = securityManager.getLockoutTimestamp()
+                    title = "Confirm Your PIN",
+                    subtitle = "Re-enter the PIN to confirm.",
+                    enteredPin = ""
                 )
             }
-        }
-    }
-
-    suspend fun clearLockoutIfExpired(context: Context) {
-        val securityManager = SecurityManager(context)
-        if (!securityManager.isLockedOut()) {
-            _pinState.update { it.copy(isLocked = false, lockoutUntil = 0L) }
-        }
-    }
-
-
-    fun submitPin(context: Context, mode: PinMode, onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            val securityManager = SecurityManager(context)
-            val currentPin = _pinState.value.pin
-
-            // Validate PIN format for setup
-            if (mode == PinMode.SETUP && !securityManager.validatePinFormat(currentPin)) {
-                _pinState.update { it.copy(errorMessage = "PIN must be 4-8 digits.") }
-                return@launch
-            }
-
-            // Process PIN based on mode
-            when (mode) {
-                PinMode.SETUP -> {
-                    securityManager.savePin(currentPin)
-                    onSuccess()
-                }
-                PinMode.AUTHENTICATE, PinMode.VERIFY -> {
-                    if (securityManager.verifyPin(currentPin)) {
-                        onSuccess()
-                    } else {
-                        // Check for lockout after failed attempt
-                        if (securityManager.isLockedOut()) {
-                            _pinState.update {
-                                it.copy(
-                                    pin = "",
-                                    errorMessage = "Too many failed attempts.",
-                                    isLocked = true,
-                                    lockoutUntil = securityManager.getLockoutTimestamp()
-                                )
-                            }
-                        } else {
-                            _pinState.update { it.copy(pin = "", errorMessage = "Incorrect PIN. Please try again.") }
-                        }
-                    }
+        } else {
+            // Second time, confirming the PIN
+            if (tempPin == enteredPin) {
+                securityManager.savePin(enteredPin)
+                _uiState.update { it.copy(isSuccess = true) }
+            } else {
+                tempPin = ""
+                _uiState.update {
+                    it.copy(
+                        title = "PINs Don't Match",
+                        subtitle = "Please try setting your PIN again.",
+                        enteredPin = "",
+                        showError = true
+                    )
                 }
             }
         }
+    }
+
+    private suspend fun handlePinVerification() {
+        if (securityManager.verifyPin(_uiState.value.enteredPin)) {
+            _uiState.update { it.copy(isSuccess = true) }
+        } else {
+            _uiState.update { it.copy(enteredPin = "", showError = true) }
+        }
+    }
+
+    // The PinMode enum should be defined here, within the ViewModel that uses it.
+    enum class PinMode(val title: String, val subtitle: String) {
+        SETUP("Set Your PIN", "Create a 6-digit PIN for security."), // Updated text
+        AUTHENTICATE("Welcome Back", "Enter your PIN to unlock."),
+        VERIFY("Security Check", "Enter your PIN to continue.")
     }
 }
-
-data class PinScreenState(
-    val pin: String = "",
-    val errorMessage: String? = null,
-    val isLocked: Boolean = false,
-    val lockoutUntil: Long = 0L
-)

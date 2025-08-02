@@ -6,19 +6,26 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PasswordDao {
-
-    @Query("SELECT * FROM passwords ORDER BY title ASC")
-    fun getAllPasswords(): Flow<List<Password>>
-
-    @Query("SELECT * FROM passwords WHERE id = :id")
-    suspend fun getPasswordById(id: String): Password?
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdate(password: Password)
+    suspend fun insertPassword(password: Password)
+
+    @Update
+    suspend fun updatePassword(password: Password)
 
     @Delete
-    suspend fun delete(password: Password)
+    suspend fun deletePassword(password: Password)
 
-    @Query("DELETE FROM passwords")
-    suspend fun deleteAll()
+    // Get all passwords that are NOT in any folder (at the root)
+    @Query("SELECT * FROM passwords WHERE folderId IS NULL ORDER BY title ASC")
+    fun getRootPasswords(): Flow<List<Password>>
+
+    // Get all passwords within a specific folder
+    @Query("SELECT * FROM passwords WHERE folderId = :folderId ORDER BY title ASC")
+    fun getPasswordsInFolder(folderId: String): Flow<List<Password>>
+
+    @Query("SELECT * FROM passwords WHERE id = :passwordId")
+    suspend fun getPasswordById(passwordId: String): Password?
+
+    @Query("SELECT * FROM passwords")
+    fun getAllPasswords(): Flow<List<Password>> // Keep for settings/export etc.
 }

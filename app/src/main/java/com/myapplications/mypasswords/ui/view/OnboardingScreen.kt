@@ -1,7 +1,6 @@
 package com.myapplications.mypasswords.ui.view
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -24,7 +23,7 @@ import androidx.navigation.NavController
 import com.myapplications.mypasswords.navigation.Screen
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(navController: NavController) {
     val pages = listOf(
