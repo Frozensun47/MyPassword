@@ -6,6 +6,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -32,13 +34,31 @@ fun PinScreen(
     onSuccess: () -> Unit,
     pinViewModel: PinViewModel = viewModel()
 ) {
-    // Corrected: Access the new uiState from the ViewModel
     val uiState by pinViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
-    // Corrected: Call the new initialize function
     LaunchedEffect(Unit) {
         pinViewModel.initialize(mode, onSuccess)
+    }
+
+    // New state to hold the ticking time remaining
+    var timeRemaining by remember { mutableLongStateOf(0L) }
+
+    // LaunchedEffect to handle the countdown timer
+    LaunchedEffect(uiState.isLockedOut, uiState.lockoutTimestamp) {
+        if (uiState.isLockedOut) {
+            while (true) {
+                val now = System.currentTimeMillis()
+                val remaining = (uiState.lockoutTimestamp - now).coerceAtLeast(0L)
+                timeRemaining = remaining / 1000L
+                if (timeRemaining <= 0L) {
+                    // Timer is up, so check the lockout status in the ViewModel to unlock
+                    pinViewModel.checkLockoutStatus()
+                    break
+                }
+                delay(1000L)
+            }
+        }
     }
 
     Scaffold(
@@ -61,10 +81,21 @@ fun PinScreen(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Subtitle text changes based on lockout status and countdown
+            val subtitleText = if (uiState.isLockedOut) {
+                if (timeRemaining > 0) {
+                    "Locked out. Try again in $timeRemaining seconds."
+                } else {
+                    "Please wait..."
+                }
+            } else {
+                uiState.subtitle
+            }
             Text(
-                text = uiState.subtitle,
+                text = subtitleText,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (uiState.isLockedOut) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.height(40.dp) // Reserve space to prevent layout shifts
             )
@@ -76,7 +107,8 @@ fun PinScreen(
 
             PinKeypad(
                 onNumberClick = { number -> pinViewModel.onPinDigit(number) },
-                onBackspaceClick = { pinViewModel.onBackspace() }
+                onBackspaceClick = { pinViewModel.onBackspace() },
+                enabled = !uiState.isLockedOut
             )
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -133,7 +165,11 @@ fun PinIndicator(pinLength: Int, error: Boolean) {
 }
 
 @Composable
-fun PinKeypad(onNumberClick: (String) -> Unit, onBackspaceClick: () -> Unit) {
+fun PinKeypad(
+    onNumberClick: (String) -> Unit,
+    onBackspaceClick: () -> Unit,
+    enabled: Boolean
+) {
     val buttons = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "back")
 
     LazyVerticalGrid(
@@ -147,11 +183,13 @@ fun PinKeypad(onNumberClick: (String) -> Unit, onBackspaceClick: () -> Unit) {
             when {
                 item.isNotBlank() && item != "back" -> KeypadButton(
                     text = item,
-                    onClick = { onNumberClick(item) }
+                    onClick = { onNumberClick(item) },
+                    enabled = enabled
                 )
                 item == "back" -> KeypadButton(
                     icon = Icons.AutoMirrored.Filled.Backspace,
-                    onClick = onBackspaceClick
+                    onClick = onBackspaceClick,
+                    enabled = enabled
                 )
                 else -> Spacer(modifier = Modifier.size(72.dp)) // Empty space for layout
             }
@@ -163,28 +201,40 @@ fun PinKeypad(onNumberClick: (String) -> Unit, onBackspaceClick: () -> Unit) {
 fun KeypadButton(
     onClick: () -> Unit,
     text: String? = null,
-    icon: ImageVector? = null
+    icon: ImageVector? = null,
+    enabled: Boolean = true
 ) {
+    val containerColor by animateColorAsState(
+        targetValue = if (enabled) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.4f),
+        label = "buttonColor"
+    )
+
     Surface(
         modifier = Modifier
             .size(72.dp)
-            .clip(CircleShape),
-        onClick = onClick,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                enabled = enabled,
+                onClick = onClick
+            ),
+        color = containerColor,
     ) {
         Box(contentAlignment = Alignment.Center) {
+            val contentColor = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
             if (text != null) {
                 Text(
                     text = text,
                     fontSize = 24.sp,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = contentColor
                 )
             }
             if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = contentColor
                 )
             }
         }

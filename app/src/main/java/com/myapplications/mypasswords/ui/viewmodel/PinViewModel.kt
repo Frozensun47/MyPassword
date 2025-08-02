@@ -2,7 +2,6 @@
 package com.myapplications.mypasswords.ui.viewmodel
 
 import android.app.Application
-import android.os.CountDownTimer
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.myapplications.mypasswords.security.SecurityManager
@@ -10,8 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
-// UI state now includes lockout information
+// UI state now includes lockout information and the lockout end time
 data class PinScreenUiState(
     val title: String = "",
     val subtitle: String = "",
@@ -19,7 +19,7 @@ data class PinScreenUiState(
     val showError: Boolean = false,
     val isSuccess: Boolean = false,
     val isLockedOut: Boolean = false,
-    val lockoutMessage: String = ""
+    val lockoutTimestamp: Long = 0L // Timestamp for when the lockout ends
 )
 
 class PinViewModel(application: Application) : AndroidViewModel(application) {
@@ -28,8 +28,7 @@ class PinViewModel(application: Application) : AndroidViewModel(application) {
         const val PIN_LENGTH = 6
     }
 
-    private val securityManager = SecurityManager(application)
-    private var lockoutTimer: CountDownTimer? = null
+    private val securityManager = SecurityManager()
 
     private val _uiState = MutableStateFlow(PinScreenUiState())
     val uiState = _uiState.asStateFlow()
@@ -37,6 +36,11 @@ class PinViewModel(application: Application) : AndroidViewModel(application) {
     private var currentMode: PinMode = PinMode.AUTHENTICATE
     private var tempPin: String = ""
     private var onSuccessCallback: () -> Unit = {}
+
+    init {
+        // Initial check for lockout as soon as the ViewModel is created
+        checkLockoutStatus()
+    }
 
     fun initialize(mode: PinMode, onSuccess: () -> Unit) {
         currentMode = mode
@@ -50,8 +54,6 @@ class PinViewModel(application: Application) : AndroidViewModel(application) {
                 isSuccess = false
             )
         }
-        // Check for existing lockout when the screen is first shown
-        checkForExistingLockout()
     }
 
     fun onPinDigit(digit: String) {
@@ -72,6 +74,39 @@ class PinViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearError() {
         _uiState.update { it.copy(showError = false) }
+    }
+
+    /**
+     * Checks the current lockout status and updates the UI state.
+     * If a lockout is active, it starts a coroutine to wait for the lockout to end.
+     */
+    fun checkLockoutStatus() {
+        viewModelScope.launch {
+            if (securityManager.isLockedOut(getApplication())) {
+                val lockoutEndTime = securityManager.getLockoutTimestamp(getApplication())
+                _uiState.update {
+                    it.copy(
+                        isLockedOut = true,
+                        lockoutTimestamp = lockoutEndTime,
+                        enteredPin = ""
+                    )
+                }
+                // Start a coroutine that waits until the lockout ends
+                val remainingTime = lockoutEndTime - System.currentTimeMillis()
+                if (remainingTime > 0) {
+                    delay(remainingTime)
+                }
+                // Once the delay is over, re-check the status to unlock the screen
+                checkLockoutStatus()
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isLockedOut = false,
+                        lockoutTimestamp = 0L
+                    )
+                }
+            }
+        }
     }
 
     private fun processPin() {
@@ -96,7 +131,7 @@ class PinViewModel(application: Application) : AndroidViewModel(application) {
             }
         } else {
             if (tempPin == enteredPin) {
-                securityManager.savePin(enteredPin)
+                securityManager.savePin(getApplication(), enteredPin)
                 _uiState.update { it.copy(isSuccess = true) }
             } else {
                 tempPin = ""
@@ -113,60 +148,14 @@ class PinViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun handlePinVerification() {
-        if (securityManager.verifyPin(_uiState.value.enteredPin)) {
+        if (securityManager.verifyPin(getApplication(),_uiState.value.enteredPin)) {
             _uiState.update { it.copy(isSuccess = true) }
         } else {
             // Verification failed, check if we are now locked out
-            if (securityManager.isLockedOut()) {
-                startLockoutTimer(securityManager.getLockoutTimestamp())
-            } else {
-                _uiState.update { it.copy(enteredPin = "", showError = true) }
-            }
+            checkLockoutStatus()
+            // Clear the pin and show an error state for a moment
+            _uiState.update { it.copy(enteredPin = "", showError = true) }
         }
-    }
-
-    private fun checkForExistingLockout() {
-        viewModelScope.launch {
-            if (securityManager.isLockedOut()) {
-                startLockoutTimer(securityManager.getLockoutTimestamp())
-            }
-        }
-    }
-
-    private fun startLockoutTimer(lockoutEndTime: Long) {
-        lockoutTimer?.cancel()
-        val remainingTime = lockoutEndTime - System.currentTimeMillis()
-        if (remainingTime > 0) {
-            _uiState.update {
-                it.copy(
-                    isLockedOut = true,
-                    enteredPin = ""
-                )
-            }
-            lockoutTimer = object : CountDownTimer(remainingTime, 1000) {
-                override fun onTick(millisUntilFinished: Long) {
-                    val secondsLeft = millisUntilFinished / 1000
-                    _uiState.update {
-                        it.copy(lockoutMessage = "Too many attempts. Try again in $secondsLeft seconds.")
-                    }
-                }
-
-                override fun onFinish() {
-                    _uiState.update {
-                        it.copy(
-                            isLockedOut = false,
-                            lockoutMessage = "",
-                            subtitle = currentMode.subtitle // Restore original subtitle
-                        )
-                    }
-                }
-            }.start()
-        }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        lockoutTimer?.cancel() // Prevent memory leaks
     }
 
     enum class PinMode(val title: String, val subtitle: String) {

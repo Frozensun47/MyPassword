@@ -39,7 +39,7 @@ fun AppLifecycleHandler(navController: NavHostController) {
                     )
 
                     val needsAuth = !AuthManager.isAuthenticated.value &&
-                            SecurityManager(context).isPinSet() &&
+                            SecurityManager().isPinSet(context) &&
                             currentRoute !in openRoutes
 
                     if (needsAuth) {

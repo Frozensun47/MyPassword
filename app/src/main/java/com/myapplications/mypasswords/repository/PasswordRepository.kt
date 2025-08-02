@@ -11,10 +11,6 @@ import com.myapplications.mypasswords.security.SecurityManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/**
- * Singleton repository for managing both Passwords and Folders.
- * Handles encryption and decryption of password data.
- */
 object PasswordRepository {
 
     private lateinit var passwordDao: PasswordDao
@@ -35,7 +31,7 @@ object PasswordRepository {
             val database = DatabaseProvider.getInstance(appContext)
             passwordDao = database.passwordDao()
             folderDao = database.folderDao()
-            securityManager = SecurityManager(appContext)
+            securityManager = SecurityManager()
         }
     }
 
@@ -101,8 +97,8 @@ object PasswordRepository {
     suspend fun deleteAllData() {
         checkInitialized()
         // You will need to add these methods to your DAOs
-        // passwordDao.deleteAll()
-        // folderDao.deleteAll()
+         passwordDao.deleteAll()
+         folderDao.deleteAll()
     }
 
     private fun checkInitialized() {

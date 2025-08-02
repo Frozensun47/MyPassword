@@ -53,7 +53,6 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
 
     if (showMoveToFolderDialog) {
         MoveToFolderDialog(
-            selectedItemCount = selectedItems.size,
             viewModel = mainViewModel,
             currentFolderId = null, // At root, so no current folder
             onDismiss = { showMoveToFolderDialog = false },

@@ -30,10 +30,10 @@ fun SplashScreen(navController: NavController) {
         delay(1000)
 
         // a new SecurityManager instance is created
-        val securityManager = SecurityManager(context)
+        val securityManager = SecurityManager()
 
         // Determine the next screen based on whether a PIN is set
-        val nextScreen = if (securityManager.isPinSet()) {
+        val nextScreen = if (securityManager.isPinSet(context)) {
             Screen.PinAuth.route
         } else {
             Screen.Onboarding.route

@@ -44,7 +44,7 @@ object DatabaseProvider {
         // runBlocking is acceptable here because database creation is a one-time,
         // blocking operation that must complete for the app to function.
         val passphrase = runBlocking {
-            SecurityManager(context).getDatabasePassphrase().toByteArray()
+            SecurityManager().getDatabasePassphrase(context).toByteArray()
         }
 
         // Define the hook to configure the database after the key is set.

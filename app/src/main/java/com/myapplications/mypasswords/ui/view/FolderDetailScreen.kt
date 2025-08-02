@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.myapplications.mypasswords.model.Folder
-import com.myapplications.mypasswords.model.Password
 import com.myapplications.mypasswords.navigation.Screen
 import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
 
@@ -48,7 +47,6 @@ fun FolderDetailScreen(
     // --- Dialogs ---
     if (showMoveToFolderDialog) {
         MoveToFolderDialog(
-            selectedItemCount = selectedIds.size,
             viewModel = mainViewModel,
             currentFolderId = folderId,
             onDismiss = { showMoveToFolderDialog = false },
