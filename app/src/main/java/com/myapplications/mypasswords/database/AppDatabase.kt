@@ -5,8 +5,9 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.myapplications.mypasswords.model.Credential
 import com.myapplications.mypasswords.model.Folder
-import com.myapplications.mypasswords.model.Password
+import com.myapplications.mypasswords.model.PasswordEntry
 import com.myapplications.mypasswords.security.SecurityManager
 import kotlinx.coroutines.runBlocking
 import net.zetetic.database.sqlcipher.SQLiteConnection
@@ -17,9 +18,9 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
  * The Room Database class for the application.
  * It now includes both Password and Folder entities.
  */
-@Database(entities = [Password::class, Folder::class], version = 2, exportSchema = false)
+@Database(entities = [PasswordEntry::class, Credential::class, Folder::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun passwordDao(): PasswordDao
+    abstract fun passwordEntryDao(): PasswordEntryDao // Changed from passwordDao()
     abstract fun folderDao(): FolderDao
 }
 

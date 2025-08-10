@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.myapplications.mypasswords.model.Folder
+import com.myapplications.mypasswords.model.HomeItem
 import com.myapplications.mypasswords.navigation.Screen
 import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
 
@@ -31,17 +32,19 @@ fun FolderDetailScreen(
     folderName: String,
     mainViewModel: MainViewModel = viewModel()
 ) {
-    val passwordsInFolder by mainViewModel.getPasswordsInFolder(folderId).collectAsState(initial = emptyList())
+    // Corrected: Fetch PasswordEntryWithCredentials instead of the old Password object
+    val entriesInFolder by mainViewModel.getEntriesInFolder(folderId).collectAsState(initial = emptyList())
 
     // --- Selection Mode State ---
     var inSelectionMode by remember { mutableStateOf(false) }
-    var selectedIds by remember { mutableStateOf(emptySet<String>()) }
+    // Corrected: Store the full HomeItem for easier processing in the ViewModel
+    var selectedItems by remember { mutableStateOf(emptySet<HomeItem>()) }
     var showMoveToFolderDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     fun clearSelection() {
         inSelectionMode = false
-        selectedIds = emptySet()
+        selectedItems = emptySet()
     }
 
     // --- Dialogs ---
@@ -51,7 +54,7 @@ fun FolderDetailScreen(
             currentFolderId = folderId,
             onDismiss = { showMoveToFolderDialog = false },
             onConfirm = { newFolderId ->
-                mainViewModel.movePasswordsToFolderByIds(selectedIds, newFolderId)
+                mainViewModel.moveItemsToFolder(selectedItems, newFolderId)
                 showMoveToFolderDialog = false
                 clearSelection()
             }
@@ -60,10 +63,10 @@ fun FolderDetailScreen(
 
     if (showDeleteConfirmation) {
         DeleteConfirmationDialog(
-            itemCount = selectedIds.size,
+            itemCount = selectedItems.size,
             onDismiss = { showDeleteConfirmation = false },
             onConfirm = {
-                mainViewModel.deletePasswordsByIds(selectedIds)
+                mainViewModel.deleteItems(selectedItems)
                 showDeleteConfirmation = false
                 clearSelection()
             }
@@ -79,7 +82,7 @@ fun FolderDetailScreen(
             ) { isSelectionMode ->
                 if (isSelectionMode) {
                     SelectionTopAppBar(
-                        selectedItemCount = selectedIds.size,
+                        selectedItemCount = selectedItems.size,
                         onClearSelection = { clearSelection() },
                         onMove = { showMoveToFolderDialog = true },
                         onDelete = { showDeleteConfirmation = true }
@@ -89,9 +92,6 @@ fun FolderDetailScreen(
                         title = { Text(folderName) },
                         navigationIcon = {
                             IconButton(onClick = {
-                                // **THE FIX IS HERE**:
-                                // This check prevents multiple back presses from firing before
-                                // navigation can complete, which stops the app from crashing.
                                 if (navController.currentBackStackEntry?.destination?.route == Screen.FolderDetail.route) {
                                     navController.popBackStack()
                                 }
@@ -123,7 +123,7 @@ fun FolderDetailScreen(
             }
         }
     ) { paddingValues ->
-        if (passwordsInFolder.isEmpty()) {
+        if (entriesInFolder.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -140,29 +140,30 @@ fun FolderDetailScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(passwordsInFolder, key = { it.id }) { password ->
-                    val isSelected = selectedIds.contains(password.id)
+                items(entriesInFolder, key = { it.entry.id }) { entry ->
+                    val item = HomeItem.PasswordEntryItem(entry)
+                    val isSelected = selectedItems.any { it.id == item.id }
                     PasswordCard(
-                        password = password,
+                        entryWithCredentials = entry,
                         isSelected = isSelected,
                         onClick = {
                             if (inSelectionMode) {
-                                selectedIds = if (isSelected) {
-                                    selectedIds - password.id
+                                selectedItems = if (isSelected) {
+                                    selectedItems - item
                                 } else {
-                                    selectedIds + password.id
+                                    selectedItems + item
                                 }
-                                if (selectedIds.isEmpty()) {
+                                if (selectedItems.isEmpty()) {
                                     inSelectionMode = false
                                 }
                             } else {
-                                navController.navigate(Screen.PasswordPinVerify.createRoute(password.id))
+                                navController.navigate(Screen.PasswordPinVerify.createRoute(entry.entry.id))
                             }
                         },
                         onLongClick = {
                             if (!inSelectionMode) {
                                 inSelectionMode = true
-                                selectedIds = setOf(password.id)
+                                selectedItems = setOf(item)
                             }
                         }
                     )

@@ -12,7 +12,8 @@ sealed interface HomeItem {
         override val id: String get() = folder.id
     }
 
-    data class PasswordItem(val password: Password) : HomeItem {
-        override val id: String get() = password.id
+    // This is the corrected version. It now wraps a PasswordEntryWithCredentials object.
+    data class PasswordEntryItem(val entryWithCredentials: PasswordEntryWithCredentials) : HomeItem {
+        override val id: String get() = entryWithCredentials.entry.id
     }
 }

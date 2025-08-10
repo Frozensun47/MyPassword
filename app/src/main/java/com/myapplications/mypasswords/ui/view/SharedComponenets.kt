@@ -7,51 +7,17 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoveToInbox
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -61,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.myapplications.mypasswords.R
 import com.myapplications.mypasswords.model.Folder
-import com.myapplications.mypasswords.model.Password
+import com.myapplications.mypasswords.model.PasswordEntryWithCredentials
 import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,9 +85,11 @@ fun SelectionTopAppBar(
     )
 }
 
+// **THE FIX IS HERE**: PasswordCard now accepts the new data model.
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PasswordCard(
-    password: Password,
+    entryWithCredentials: PasswordEntryWithCredentials,
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
@@ -131,11 +99,13 @@ fun PasswordCard(
         onClick = onClick,
         onLongClick = onLongClick,
         icon = Icons.Default.Lock,
-        title = password.title,
-        subtitle = password.username
+        title = entryWithCredentials.entry.title,
+        // Display the first username as a subtitle, or an empty string if there are no credentials
+        subtitle = entryWithCredentials.credentials.firstOrNull()?.username ?: ""
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FolderCard(
     folder: Folder,
@@ -153,7 +123,7 @@ fun FolderCard(
     )
 }
 
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SelectableItemCard(
     isSelected: Boolean,
@@ -237,7 +207,6 @@ fun MoveToFolderDialog(
     val folders by viewModel.getAllFolders().collectAsState(initial = emptyList())
     var showFolderEditDialog by remember { mutableStateOf(false) }
 
-    // This dialog will appear on top of the current one when triggered
     if (showFolderEditDialog) {
         FolderEditDialog(
             onDismiss = { showFolderEditDialog = false },
@@ -268,6 +237,9 @@ fun MoveToFolderDialog(
                         text = folder.name,
                         onClick = { onConfirm(folder.id) }
                     )
+                }
+                item {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 }
                 item {
                     DialogRow(
@@ -327,6 +299,49 @@ fun DeleteConfirmationDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             ) {
                 Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun FolderEditDialog(
+    initialFolderName: String = "",
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var folderName by remember { mutableStateOf(initialFolderName) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (initialFolderName.isEmpty()) "Create Folder" else "Rename Folder") },
+        text = {
+            Column {
+                Text("Enter a name for the folder.")
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = folderName,
+                    onValueChange = { folderName = it },
+                    label = { Text("Folder Name") },
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (folderName.isNotBlank()) {
+                        onConfirm(folderName.trim())
+                    }
+                },
+                enabled = folderName.isNotBlank()
+            ) {
+                Text("Save")
             }
         },
         dismissButton = {

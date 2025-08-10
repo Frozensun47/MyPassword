@@ -21,6 +21,7 @@ import com.myapplications.mypasswords.ui.components.AppMenuTray
 import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(navController: NavController, mainViewModel: MainViewModel = viewModel()) {
     val homeItems by mainViewModel.homeItems.collectAsState(initial = emptyList())
@@ -54,7 +55,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
     if (showMoveToFolderDialog) {
         MoveToFolderDialog(
             viewModel = mainViewModel,
-            currentFolderId = null, // At root, so no current folder
+            currentFolderId = null,
             onDismiss = { showMoveToFolderDialog = false },
             onConfirm = { folderId ->
                 mainViewModel.moveItemsToFolder(selectedItems, folderId)
@@ -79,8 +80,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            AppMenuTray(
-                navController = navController,
+            AppMenuTray(navController = navController,
                 onSettingsClick = {
                     scope.launch {
                         drawerState.close()
@@ -115,15 +115,13 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
             floatingActionButtonPosition = FabPosition.Center,
             floatingActionButton = {
                 if (!inSelectionMode) {
-                    // **UI UPDATE**: Using standard FAB with CircleShape
-                    FloatingActionButton (
+                    FloatingActionButton(
                         onClick = { navController.navigate(Screen.PasswordDetail.createRoute("new")) },
                         shape = CircleShape
                     ) {
                         Icon(
                             Icons.Default.Add,
-                            contentDescription = "Add Password",
-                            modifier = Modifier.size(30.dp)
+                            contentDescription = "Add Password"
                         )
                     }
                 }
@@ -133,7 +131,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp), // Added bottom padding for FAB
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(homeItems, key = { it.id }) { item ->
@@ -150,12 +148,13 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                                 inSelectionMode = false
                             }
                         } else {
+                            // **FIXED**: Handle both FolderItem and the new PasswordEntryItem
                             when (item) {
                                 is HomeItem.FolderItem -> navController.navigate(
                                     Screen.FolderDetail.createRoute(item.folder.id, item.folder.name)
                                 )
-                                is HomeItem.PasswordItem -> navController.navigate(
-                                    Screen.PasswordPinVerify.createRoute(item.password.id)
+                                is HomeItem.PasswordEntryItem -> navController.navigate(
+                                    Screen.PasswordPinVerify.createRoute(item.entryWithCredentials.entry.id)
                                 )
                             }
                         }
@@ -168,6 +167,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                         }
                     }
 
+                    // **FIXED**: Handle both FolderItem and the new PasswordEntryItem
                     when (item) {
                         is HomeItem.FolderItem -> FolderCard(
                             folder = item.folder,
@@ -175,8 +175,8 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                             onClick = ::handleItemClick,
                             onLongClick = ::handleItemLongClick
                         )
-                        is HomeItem.PasswordItem -> PasswordCard(
-                            password = item.password,
+                        is HomeItem.PasswordEntryItem -> PasswordCard(
+                            entryWithCredentials = item.entryWithCredentials,
                             isSelected = isSelected,
                             onClick = ::handleItemClick,
                             onLongClick = ::handleItemLongClick

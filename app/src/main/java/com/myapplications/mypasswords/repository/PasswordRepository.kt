@@ -4,76 +4,84 @@ package com.myapplications.mypasswords.repository
 import android.content.Context
 import com.myapplications.mypasswords.database.DatabaseProvider
 import com.myapplications.mypasswords.database.FolderDao
-import com.myapplications.mypasswords.database.PasswordDao
+import com.myapplications.mypasswords.database.PasswordEntryDao
+import com.myapplications.mypasswords.model.Credential
 import com.myapplications.mypasswords.model.Folder
-import com.myapplications.mypasswords.model.Password
+import com.myapplications.mypasswords.model.PasswordEntry
+import com.myapplications.mypasswords.model.PasswordEntryWithCredentials
 import com.myapplications.mypasswords.security.SecurityManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+/**
+ * Singleton repository for managing Password Entries, Credentials, and Folders.
+ * Handles encryption and decryption of credential data.
+ */
 object PasswordRepository {
 
-    private lateinit var passwordDao: PasswordDao
+    private lateinit var passwordEntryDao: PasswordEntryDao
     private lateinit var folderDao: FolderDao
     private lateinit var securityManager: SecurityManager
 
-    /**
-     * Initializes the repository with the application context.
-     * This must be called once before any repository methods are used.
-     */
     fun initialize(context: Context) {
-        if (!::passwordDao.isInitialized) {
-            // **THE FIX IS HERE**:
-            // To prevent potential memory leaks, we explicitly use the application context,
-            // which is safe to store in a long-lived singleton object like this repository.
+        if (!::passwordEntryDao.isInitialized) {
             val appContext = context.applicationContext
-
             val database = DatabaseProvider.getInstance(appContext)
-            passwordDao = database.passwordDao()
+            // Use the new DAO for password entries
+            passwordEntryDao = database.passwordEntryDao()
             folderDao = database.folderDao()
             securityManager = SecurityManager()
         }
     }
 
-    // --- Password Functions (with Encryption/Decryption) ---
+    // --- Password Entry Functions (with Encryption/Decryption) ---
 
-    fun getRootPasswords(): Flow<List<Password>> {
+    private fun decryptCredentials(entry: PasswordEntryWithCredentials): PasswordEntryWithCredentials {
+        val decryptedCredentials = entry.credentials.map {
+            it.copy(password = securityManager.decrypt(it.password))
+        }
+        return entry.copy(credentials = decryptedCredentials)
+    }
+
+    fun getRootEntriesWithCredentials(): Flow<List<PasswordEntryWithCredentials>> {
         checkInitialized()
-        return passwordDao.getRootPasswords().map { list ->
-            list.map { it.copy(password = securityManager.decrypt(it.password)) }
+        return passwordEntryDao.getRootEntriesWithCredentials().map { list ->
+            list.map { decryptCredentials(it) }
         }
     }
 
-    fun getPasswordsInFolder(folderId: String): Flow<List<Password>> {
+    fun getEntriesInFolder(folderId: String): Flow<List<PasswordEntryWithCredentials>> {
         checkInitialized()
-        return passwordDao.getPasswordsInFolder(folderId).map { list ->
-            list.map { it.copy(password = securityManager.decrypt(it.password)) }
+        return passwordEntryDao.getEntriesWithCredentialsInFolder(folderId).map { list ->
+            list.map { decryptCredentials(it) }
         }
     }
 
-    suspend fun getPasswordById(id: String): Password? {
+    fun getEntryWithCredentials(entryId: String): Flow<PasswordEntryWithCredentials?> {
         checkInitialized()
-        val encryptedPassword = passwordDao.getPasswordById(id)
-        return encryptedPassword?.copy(password = securityManager.decrypt(encryptedPassword.password))
+        return passwordEntryDao.getEntryWithCredentials(entryId).map { entry ->
+            entry?.let { decryptCredentials(it) }
+        }
     }
 
-    suspend fun savePassword(password: Password) {
+    suspend fun saveEntryWithCredentials(entry: PasswordEntry, credentials: List<Credential>) {
         checkInitialized()
-        val encryptedPassword = password.copy(password = securityManager.encrypt(password.password))
-        passwordDao.insertPassword(encryptedPassword)
+        val encryptedCredentials = credentials.map {
+            it.copy(password = securityManager.encrypt(it.password))
+        }
+        passwordEntryDao.saveEntryWithCredentials(entry, encryptedCredentials)
     }
 
-    suspend fun deletePassword(password: Password) {
+    suspend fun deleteEntry(entry: PasswordEntry) {
         checkInitialized()
-        // No need to encrypt/decrypt for deletion
-        passwordDao.deletePassword(password)
+        passwordEntryDao.deleteEntry(entry)
     }
 
-    suspend fun updatePassword(password: Password) {
+    suspend fun updateEntry(entry: PasswordEntry) {
         checkInitialized()
-        val encryptedPassword = password.copy(password = securityManager.encrypt(password.password))
-        passwordDao.updatePassword(encryptedPassword)
+        passwordEntryDao.updateEntry(entry)
     }
+
 
     // --- Folder Functions ---
     fun getAllFolders(): Flow<List<Folder>> {
@@ -91,18 +99,14 @@ object PasswordRepository {
         folderDao.deleteFolder(folder)
     }
 
-    /**
-     * Deletes all data from the database. Use with caution.
-     */
     suspend fun deleteAllData() {
         checkInitialized()
-        // You will need to add these methods to your DAOs
-         passwordDao.deleteAll()
+         passwordEntryDao.deleteAll()
          folderDao.deleteAll()
     }
 
     private fun checkInitialized() {
-        if (!::passwordDao.isInitialized) {
+        if (!::passwordEntryDao.isInitialized) {
             throw IllegalStateException("PasswordRepository not initialized. Call initialize() in your Application class.")
         }
     }
