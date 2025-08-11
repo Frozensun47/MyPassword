@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import net.zetetic.database.sqlcipher.SQLiteConnection
 import net.zetetic.database.sqlcipher.SQLiteDatabaseHook
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import android.util.Log
 
 /**
  * The Room Database class for the application.
@@ -34,17 +35,35 @@ object DatabaseProvider {
     @Volatile
     private var INSTANCE: AppDatabase? = null
     private val mutex = Mutex()
+    private const val TAG = "DatabaseProvider"
 
-    // The getInstance function now uses a Mutex for thread-safe access.
+    // The getInstance function is now truly non-blocking.
     suspend fun getInstance(context: Context): AppDatabase {
-        return INSTANCE ?: mutex.withLock {
-            INSTANCE ?: buildDatabase(context).also { INSTANCE = it }
+        Log.d(TAG, "getInstance() called. Checking for existing instance.")
+        // First check without a lock for fast path access.
+        val currentInstance = INSTANCE
+        if (currentInstance != null) {
+            Log.d(TAG, "Instance already exists. Returning.")
+            return currentInstance
+        }
+
+        // Fetch passphrase outside the lock, as this is a suspend function.
+        Log.d(TAG, "Instance does not exist. Fetching passphrase.")
+        val passphrase = SecurityManager().getDatabasePassphrase(context).toByteArray()
+        Log.d(TAG, "Passphrase fetched. Acquiring mutex lock.")
+
+        return mutex.withLock {
+            Log.d(TAG, "Mutex lock acquired. Second check for instance.")
+            // Second check inside the lock, as another coroutine may have initialized the database.
+            INSTANCE ?: buildDatabase(context, passphrase).also {
+                INSTANCE = it
+                Log.d(TAG, "Database instance built and assigned. Releasing mutex lock.")
+            }
         }
     }
 
-    private suspend fun buildDatabase(context: Context): AppDatabase {
-        val passphrase = SecurityManager().getDatabasePassphrase(context).toByteArray()
-
+    private suspend fun buildDatabase(context: Context, passphrase: ByteArray): AppDatabase {
+        Log.d(TAG, "Building database...")
         val hook = object : SQLiteDatabaseHook {
             override fun preKey(connection: SQLiteConnection) {}
             override fun postKey(connection: SQLiteConnection?) {}
@@ -52,7 +71,7 @@ object DatabaseProvider {
 
         val factory = SupportOpenHelperFactory(passphrase, hook, true)
 
-        return Room.databaseBuilder(
+        val db = Room.databaseBuilder(
             context.applicationContext,
             AppDatabase::class.java,
             "mypasswords.db"
@@ -60,5 +79,8 @@ object DatabaseProvider {
             .openHelperFactory(factory)
             .fallbackToDestructiveMigration(false)
             .build()
+
+        Log.d(TAG, "Database build complete.")
+        return db
     }
 }

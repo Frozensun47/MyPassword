@@ -64,21 +64,23 @@ object PasswordRepository {
         return entry.copy(credentials = decryptedCredentials)
     }
 
-    fun getRootEntriesWithCredentials(): Flow<List<PasswordEntryWithCredentials>> {
-        // The check is now suspendable and should be awaited
-        // The Flow collects on a background thread so this is safe
+    // Refactored to be suspend functions that return a Flow after initialization check.
+    suspend fun getRootEntriesWithCredentials(): Flow<List<PasswordEntryWithCredentials>> {
+        checkInitialized()
         return passwordEntryDao.getRootEntriesWithCredentials().map { list ->
             list.map { decryptCredentials(it) }
         }
     }
 
-    fun getEntriesInFolder(folderId: String): Flow<List<PasswordEntryWithCredentials>> {
+    suspend fun getEntriesInFolder(folderId: String): Flow<List<PasswordEntryWithCredentials>> {
+        checkInitialized()
         return passwordEntryDao.getEntriesWithCredentialsInFolder(folderId).map { list ->
             list.map { decryptCredentials(it) }
         }
     }
 
-    fun getEntryWithCredentials(entryId: String): Flow<PasswordEntryWithCredentials?> {
+    suspend fun getEntryWithCredentials(entryId: String): Flow<PasswordEntryWithCredentials?> {
+        checkInitialized()
         return passwordEntryDao.getEntryWithCredentials(entryId).map { entry ->
             entry?.let { decryptCredentials(it) }
         }
@@ -102,9 +104,10 @@ object PasswordRepository {
         passwordEntryDao.updateEntry(entry)
     }
 
-
     // --- Folder Functions ---
-    fun getAllFolders(): Flow<List<Folder>> {
+    // Refactored to be suspend functions that return a Flow after initialization check.
+    suspend fun getAllFolders(): Flow<List<Folder>> {
+        checkInitialized()
         return folderDao.getAllFolders()
     }
 

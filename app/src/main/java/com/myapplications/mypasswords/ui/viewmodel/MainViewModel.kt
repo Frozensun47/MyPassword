@@ -13,78 +13,97 @@ import com.myapplications.mypasswords.repository.PasswordRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    // The repository is now initialized in the Application class, so this call is removed.
     private val repository = PasswordRepository
 
-    // Combine folders and root password entries into a single list for the main screen.
-    val homeItems: Flow<List<HomeItem>> = combine(
-        repository.getAllFolders().flowOn(Dispatchers.Default),
-        repository.getRootEntriesWithCredentials().flowOn(Dispatchers.Default)
-    ) { folders, passwordEntries ->
-        val folderItems = folders.map { HomeItem.FolderItem(it) }
-        val passwordItems = passwordEntries.map { HomeItem.PasswordEntryItem(it) }
-        // You can add sorting logic here if needed, e.g., .sortedBy { it.title }
-        folderItems + passwordItems
-    }
+    val homeItems: Flow<List<HomeItem>> = flow {
+        // Now calling suspend functions from a flow builder
+        val foldersFlow = repository.getAllFolders()
+        val passwordsFlow = repository.getRootEntriesWithCredentials()
 
-    // --- Password Entry Functions ---
+        combine(foldersFlow, passwordsFlow) { folders, passwordEntries ->
+            val folderItems = folders.map { HomeItem.FolderItem(it) }
+            val passwordItems = passwordEntries.map { HomeItem.PasswordEntryItem(it) }
+            folderItems + passwordItems
+        }.collect { emit(it) }
+    }.flowOn(Dispatchers.Default)
 
     fun getEntriesInFolder(folderId: String): Flow<List<PasswordEntryWithCredentials>> {
-        return repository.getEntriesInFolder(folderId)
+        return flow {
+            repository.getEntriesInFolder(folderId).collect {
+                emit(it)
+            }
+        }.flowOn(Dispatchers.Default)
     }
 
     fun getEntryWithCredentials(entryId: String): Flow<PasswordEntryWithCredentials?> {
-        return repository.getEntryWithCredentials(entryId)
+        return flow {
+            repository.getEntryWithCredentials(entryId).collect {
+                emit(it)
+            }
+        }.flowOn(Dispatchers.Default)
     }
 
     fun saveEntryWithCredentials(entry: PasswordEntry, credentials: List<Credential>) = viewModelScope.launch {
-        repository.saveEntryWithCredentials(entry, credentials)
+        withContext(Dispatchers.IO) {
+            repository.saveEntryWithCredentials(entry, credentials)
+        }
     }
 
     fun deleteEntry(entry: PasswordEntry) = viewModelScope.launch {
-        repository.deleteEntry(entry)
+        withContext(Dispatchers.IO) {
+            repository.deleteEntry(entry)
+        }
     }
 
-
-    // --- Unified Functions for Selection Mode ---
-
     fun deleteItems(items: Set<HomeItem>) = viewModelScope.launch {
-        items.forEach { item ->
-            when (item) {
-                is HomeItem.FolderItem -> repository.deleteFolder(item.folder)
-                is HomeItem.PasswordEntryItem -> repository.deleteEntry(item.entryWithCredentials.entry)
+        withContext(Dispatchers.IO) {
+            items.forEach { item ->
+                when (item) {
+                    is HomeItem.FolderItem -> repository.deleteFolder(item.folder)
+                    is HomeItem.PasswordEntryItem -> repository.deleteEntry(item.entryWithCredentials.entry)
+                }
             }
         }
     }
 
     fun moveItemsToFolder(items: Set<HomeItem>, folderId: String?) = viewModelScope.launch {
-        items.forEach { item ->
-            if (item is HomeItem.PasswordEntryItem) {
-                val updatedEntry = item.entryWithCredentials.entry.copy(folderId = folderId)
-                repository.updateEntry(updatedEntry)
+        withContext(Dispatchers.IO) {
+            items.forEach { item ->
+                if (item is HomeItem.PasswordEntryItem) {
+                    val updatedEntry = item.entryWithCredentials.entry.copy(folderId = folderId)
+                    repository.updateEntry(updatedEntry)
+                }
             }
         }
     }
 
-    // --- Folder Management ---
-
-    fun getAllFolders(): Flow<List<Folder>> = repository.getAllFolders()
+    fun getAllFolders(): Flow<List<Folder>> = flow {
+        repository.getAllFolders().collect {
+            emit(it)
+        }
+    }.flowOn(Dispatchers.Default)
 
     fun saveFolder(folder: Folder) = viewModelScope.launch {
-        repository.saveFolder(folder)
+        withContext(Dispatchers.IO) {
+            repository.saveFolder(folder)
+        }
     }
 
     fun deleteFolder(folder: Folder) = viewModelScope.launch {
-        repository.deleteFolder(folder)
+        withContext(Dispatchers.IO) {
+            repository.deleteFolder(folder)
+        }
     }
 
-    // --- General ---
-
     fun deleteAllData() = viewModelScope.launch {
-        repository.deleteAllData()
+        withContext(Dispatchers.IO) {
+            repository.deleteAllData()
+        }
     }
 }
