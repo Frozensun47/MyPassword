@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
 import com.myapplications.mypasswords.navigation.AppNavigation
@@ -39,9 +39,12 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainActivity : ComponentActivity() {
+    private val TAG = "MainActivity"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        Log.d(TAG, "onCreate: Activity created.")
 
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
@@ -60,21 +63,31 @@ class MainActivity : ComponentActivity() {
                     var keepSplashOnScreen by remember { mutableStateOf(true) }
 
                     splashScreen.setKeepOnScreenCondition { keepSplashOnScreen }
+                    Log.d(TAG, "setContent: Composable content is being set up. keepSplashOnScreen is initially true.")
 
                     LaunchedEffect(Unit) {
+                        Log.d(TAG, "LaunchedEffect started on thread: ${Thread.currentThread().name}")
                         withContext(Dispatchers.IO) {
+                            Log.d(TAG, "Switched to IO context for initial checks.")
                             try {
                                 if (isDeviceRooted() || isRunningOnEmulator()) {
                                     securityAlert = "For your security, this app cannot be run on a rooted or emulated device."
+                                    Log.w(TAG, "Security check failed: Rooted device or emulator detected.")
                                 } else {
+                                    Log.d(TAG, "Security check passed. Determining start destination.")
+                                    // The repository initialization is already running in the background.
+                                    // This call will simply suspend until it's done.
                                     val securityManager = SecurityManager()
                                     val isPinSet = securityManager.isPinSet(context)
                                     startDestination = if (isPinSet) Screen.PinAuth.route else Screen.Onboarding.route
+                                    Log.d(TAG, "Start destination determined: $startDestination")
                                 }
                             } catch (e: Exception) {
                                 securityAlert = "Failed to start application: ${e.message}"
+                                Log.e(TAG, "Error during initial setup", e)
                             } finally {
                                 keepSplashOnScreen = false
+                                Log.d(TAG, "Finished initial setup. keepSplashOnScreen set to false.")
                             }
                         }
                     }
@@ -88,6 +101,11 @@ class MainActivity : ComponentActivity() {
                         val navController = rememberNavController()
                         AppLifecycleHandler(navController = navController)
                         AppNavigation(navController = navController, startDestination = startDestination!!)
+                    } else {
+                        // This loading indicator will now be shown while the LaunchedEffect runs.
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            CircularProgressIndicator()
+                        }
                     }
                 }
             }
@@ -106,6 +124,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun isRunningOnEmulator(): Boolean {
+        // ... (rest of the function is unchanged)
         return (Build.FINGERPRINT.startsWith("generic")
                 || Build.FINGERPRINT.startsWith("unknown")
                 || Build.MODEL.contains("google_sdk")
@@ -117,6 +136,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun isDeviceRooted(): Boolean {
+        // ... (rest of the function is unchanged)
         val paths = arrayOf(
             "/system/app/Superuser.apk", "/sbin/su", "/system/bin/su", "/system/xbin/su",
             "/data/local/xbin/su", "/data/local/bin/su", "/system/sd/xbin/su",

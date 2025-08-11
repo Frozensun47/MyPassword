@@ -11,27 +11,55 @@ import com.myapplications.mypasswords.model.PasswordEntry
 import com.myapplications.mypasswords.model.PasswordEntryWithCredentials
 import com.myapplications.mypasswords.repository.PasswordRepository
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
+
+// Data class to represent the UI state, including a loading flag.
+data class MainScreenUiState(
+    val isLoading: Boolean = true,
+    val homeItems: List<HomeItem> = emptyList()
+)
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PasswordRepository
 
-    val homeItems: Flow<List<HomeItem>> = flow {
-        // Now calling suspend functions from a flow builder
-        val foldersFlow = repository.getAllFolders()
-        val passwordsFlow = repository.getRootEntriesWithCredentials()
+    // Private MutableStateFlow to hold the UI state.
+    private val _uiState = MutableStateFlow(MainScreenUiState())
+    // Publicly exposed as a regular StateFlow for the UI to observe.
+    val uiState = _uiState.asStateFlow()
 
-        combine(foldersFlow, passwordsFlow) { folders, passwordEntries ->
-            val folderItems = folders.map { HomeItem.FolderItem(it) }
-            val passwordItems = passwordEntries.map { HomeItem.PasswordEntryItem(it) }
-            folderItems + passwordItems
-        }.collect { emit(it) }
-    }.flowOn(Dispatchers.Default)
+    private val hasLoadedData = AtomicBoolean(false)
+
+    fun loadData() {
+        // Only load data if it hasn't been loaded before.
+        if (hasLoadedData.compareAndSet(false, true)) {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true) }
+
+                // CORRECTED: Fetch initial data sequentially to prevent database contention.
+                val folders = repository.getAllFolders().flowOn(Dispatchers.IO).first()
+                val passwordEntries = repository.getRootEntriesWithCredentials().flowOn(Dispatchers.IO).first()
+
+                val folderItems = folders.map { HomeItem.FolderItem(it) }
+                val passwordItems = passwordEntries.map { HomeItem.PasswordEntryItem(it) }
+                val combinedItems = folderItems + passwordItems
+
+                // Now that all data is fetched, update the UI state.
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        homeItems = combinedItems
+                    )
+                }
+
+                // OPTIONAL: If you need live updates after the initial load,
+                // you could start a new, combined flow collection here.
+                // For fixing the startup issue, this sequential load is sufficient.
+            }
+        }
+    }
 
     fun getEntriesInFolder(folderId: String): Flow<List<PasswordEntryWithCredentials>> {
         return flow {

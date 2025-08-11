@@ -2,6 +2,7 @@
 package com.myapplications.mypasswords.repository
 
 import android.content.Context
+import android.util.Log
 import com.myapplications.mypasswords.database.DatabaseProvider
 import com.myapplications.mypasswords.database.FolderDao
 import com.myapplications.mypasswords.database.PasswordEntryDao
@@ -10,11 +11,9 @@ import com.myapplications.mypasswords.model.Folder
 import com.myapplications.mypasswords.model.PasswordEntry
 import com.myapplications.mypasswords.model.PasswordEntryWithCredentials
 import com.myapplications.mypasswords.security.SecurityManager
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -23,39 +22,60 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 object PasswordRepository {
 
+    private const val TAG = "PasswordRepository"
+
     private lateinit var passwordEntryDao: PasswordEntryDao
     private lateinit var folderDao: FolderDao
     private lateinit var securityManager: SecurityManager
 
+    private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val isInitialized = AtomicBoolean(false)
-    private lateinit var initializationDeferred: CompletableDeferred<Unit>
+    private val initializationDeferred = CompletableDeferred<Unit>()
 
-    suspend fun initialize(context: Context) {
+    fun initialize(context: Context) {
+        Log.d(TAG, "Initialize called. Is already initialized: ${isInitialized.get()}")
         if (isInitialized.compareAndSet(false, true)) {
-            initializationDeferred = CompletableDeferred()
-            try {
-                val appContext = context.applicationContext
-                val database = DatabaseProvider.getInstance(appContext)
-                passwordEntryDao = database.passwordEntryDao()
-                folderDao = database.folderDao()
-                securityManager = SecurityManager()
-                initializationDeferred.complete(Unit)
-            } catch (e: Exception) {
-                initializationDeferred.completeExceptionally(e)
-                throw e
+            Log.d(TAG, "Starting initialization in repositoryScope.")
+            repositoryScope.launch {
+                try {
+                    Log.d(TAG, "Initialization coroutine started on thread: ${Thread.currentThread().name}")
+                    val appContext = context.applicationContext
+                    val database = DatabaseProvider.getInstance(appContext)
+                    Log.d(TAG, "Database instance received.")
+
+                    passwordEntryDao = database.passwordEntryDao()
+                    folderDao = database.folderDao()
+                    securityManager = SecurityManager()
+                    Log.d(TAG, "DAOs and SecurityManager are set up.")
+
+                    initializationDeferred.complete(Unit)
+                    Log.d(TAG, "Initialization successful. Deferred is completed.")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Initialization failed", e)
+                    initializationDeferred.completeExceptionally(e)
+                }
             }
-        } else {
+        }
+    }
+
+    /**
+     * A new public function to allow other parts of the app to wait for initialization.
+     */
+    suspend fun awaitInitialization() {
+        if (!initializationDeferred.isCompleted) {
+            Log.d(TAG, "awaitInitialization: Waiting for repository to be ready...")
             initializationDeferred.await()
+            Log.d(TAG, "awaitInitialization: Repository is now ready.")
         }
     }
 
     private suspend fun checkInitialized() {
-        if (!isInitialized.get()) {
-            initializationDeferred.await()
-        }
+        // This internal check now uses the new public awaiter function.
+        awaitInitialization()
+        Log.d(TAG, "checkInitialized: Already initialized.")
     }
 
-    // --- Password Entry Functions (with Encryption/Decryption) ---
+    // --- (Rest of the file is unchanged) ---
 
     private fun decryptCredentials(entry: PasswordEntryWithCredentials): PasswordEntryWithCredentials {
         val decryptedCredentials = entry.credentials.map {
@@ -64,7 +84,6 @@ object PasswordRepository {
         return entry.copy(credentials = decryptedCredentials)
     }
 
-    // Refactored to be suspend functions that return a Flow after initialization check.
     suspend fun getRootEntriesWithCredentials(): Flow<List<PasswordEntryWithCredentials>> {
         checkInitialized()
         return passwordEntryDao.getRootEntriesWithCredentials().map { list ->
@@ -104,8 +123,6 @@ object PasswordRepository {
         passwordEntryDao.updateEntry(entry)
     }
 
-    // --- Folder Functions ---
-    // Refactored to be suspend functions that return a Flow after initialization check.
     suspend fun getAllFolders(): Flow<List<Folder>> {
         checkInitialized()
         return folderDao.getAllFolders()

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,7 +25,16 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(navController: NavController, mainViewModel: MainViewModel = viewModel()) {
-    val homeItems by mainViewModel.homeItems.collectAsState(initial = emptyList())
+    // Collect the entire UI state from the ViewModel.
+    val uiState by mainViewModel.uiState.collectAsState()
+    val homeItems = uiState.homeItems // Extract homeItems for convenience.
+
+    // This LaunchedEffect will run once when the MainScreen is first composed.
+    // It safely triggers the data loading process.
+    LaunchedEffect(Unit) {
+        mainViewModel.loadData()
+    }
+
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -114,7 +124,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
             },
             floatingActionButtonPosition = FabPosition.Center,
             floatingActionButton = {
-                if (!inSelectionMode) {
+                if (!inSelectionMode && !uiState.isLoading) { // Hide FAB while loading
                     FloatingActionButton(
                         onClick = { navController.navigate(Screen.PasswordDetail.createRoute("new")) },
                         shape = CircleShape
@@ -127,60 +137,69 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                 }
             }
         ) { paddingValues ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(homeItems, key = { it.id }) { item ->
-                    val isSelected = selectedItems.any { it.id == item.id }
+            // If isLoading is true, show a loading indicator.
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                // Otherwise, show the list of items.
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(homeItems, key = { it.id }) { item ->
+                        val isSelected = selectedItems.any { it.id == item.id }
 
-                    fun handleItemClick() {
-                        if (inSelectionMode) {
-                            selectedItems = if (isSelected) {
-                                selectedItems - item
+                        fun handleItemClick() {
+                            if (inSelectionMode) {
+                                selectedItems = if (isSelected) {
+                                    selectedItems - item
+                                } else {
+                                    selectedItems + item
+                                }
+                                if (selectedItems.isEmpty()) {
+                                    inSelectionMode = false
+                                }
                             } else {
-                                selectedItems + item
-                            }
-                            if (selectedItems.isEmpty()) {
-                                inSelectionMode = false
-                            }
-                        } else {
-                            // **FIXED**: Handle both FolderItem and the new PasswordEntryItem
-                            when (item) {
-                                is HomeItem.FolderItem -> navController.navigate(
-                                    Screen.FolderDetail.createRoute(item.folder.id, item.folder.name)
-                                )
-                                is HomeItem.PasswordEntryItem -> navController.navigate(
-                                    Screen.PasswordPinVerify.createRoute(item.entryWithCredentials.entry.id)
-                                )
+                                when (item) {
+                                    is HomeItem.FolderItem -> navController.navigate(
+                                        Screen.FolderDetail.createRoute(item.folder.id, item.folder.name)
+                                    )
+                                    is HomeItem.PasswordEntryItem -> navController.navigate(
+                                        Screen.PasswordPinVerify.createRoute(item.entryWithCredentials.entry.id)
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    fun handleItemLongClick() {
-                        if (!inSelectionMode) {
-                            inSelectionMode = true
-                            selectedItems = setOf(item)
+                        fun handleItemLongClick() {
+                            if (!inSelectionMode) {
+                                inSelectionMode = true
+                                selectedItems = setOf(item)
+                            }
                         }
-                    }
 
-                    // **FIXED**: Handle both FolderItem and the new PasswordEntryItem
-                    when (item) {
-                        is HomeItem.FolderItem -> FolderCard(
-                            folder = item.folder,
-                            isSelected = isSelected,
-                            onClick = ::handleItemClick,
-                            onLongClick = ::handleItemLongClick
-                        )
-                        is HomeItem.PasswordEntryItem -> PasswordCard(
-                            entryWithCredentials = item.entryWithCredentials,
-                            isSelected = isSelected,
-                            onClick = ::handleItemClick,
-                            onLongClick = ::handleItemLongClick
-                        )
+                        when (item) {
+                            is HomeItem.FolderItem -> FolderCard(
+                                folder = item.folder,
+                                isSelected = isSelected,
+                                onClick = ::handleItemClick,
+                                onLongClick = ::handleItemLongClick
+                            )
+                            is HomeItem.PasswordEntryItem -> PasswordCard(
+                                entryWithCredentials = item.entryWithCredentials,
+                                isSelected = isSelected,
+                                onClick = ::handleItemClick,
+                                onLongClick = ::handleItemLongClick
+                            )
+                        }
                     }
                 }
             }

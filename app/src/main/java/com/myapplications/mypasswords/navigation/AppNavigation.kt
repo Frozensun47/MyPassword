@@ -7,7 +7,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.myapplications.mypasswords.ui.view.*
 import com.myapplications.mypasswords.ui.viewmodel.PinViewModel
@@ -54,12 +53,22 @@ fun AppNavigation(navController: NavHostController, startDestination: String) {
 
         composable(Screen.PinSetup.route) {
             PinScreen(mode = PinViewModel.PinMode.SETUP, onSuccess = {
-                navController.navigate(Screen.Main.route) { popUpTo(Screen.PinSetup.route) { inclusive = true } }
+                navController.navigate(Screen.Main.route) {
+                    // CORRECTED: Pop up to the start of the graph to clear the auth flow
+                    popUpTo(navController.graph.startDestinationId) {
+                        inclusive = true
+                    }
+                }
             })
         }
         composable(Screen.PinAuth.route) {
             PinScreen(mode = PinViewModel.PinMode.AUTHENTICATE, onSuccess = {
-                navController.navigate(Screen.Main.route) { popUpTo(Screen.PinAuth.route) { inclusive = true } }
+                navController.navigate(Screen.Main.route) {
+                    // CORRECTED: Pop up to the start of the graph to clear the auth flow
+                    popUpTo(navController.graph.startDestinationId) {
+                        inclusive = true
+                    }
+                }
             })
         }
         composable(
