@@ -2,6 +2,7 @@
 package com.myapplications.mypasswords.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -69,15 +70,19 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             arguments = listOf(navArgument("passwordId") { type = NavType.StringType })
         ) { backStackEntry ->
             val passwordId = backStackEntry.arguments?.getString("passwordId") ?: ""
-            PinScreen(mode = PinViewModel.PinMode.VERIFY, onSuccess = {
-                // **THE FIX IS HERE**
+            // This LaunchedEffect will run once when this screen is composed.
+            // It immediately navigates to the PasswordDetail screen, effectively
+            // bypassing the PIN check that was here before.
+            LaunchedEffect(key1 = passwordId) {
                 navController.navigate(Screen.PasswordDetail.createRoute(passwordId)) {
-                    // This removes the PIN screen from the back stack, so you don't return to it.
+                    // This removes the PIN verification screen from the back stack, so the user
+                    // doesn't navigate back to it.
                     popUpTo(Screen.PasswordPinVerify.route) {
                         inclusive = true
                     }
                 }
-            })
+            }
+            // An empty composable is shown briefly during the automatic navigation.
         }
 
         // --- Password and Folder Detail Screens ---
@@ -110,15 +115,6 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 folderId = folderId,
                 folderName = folderName
             )
-        }
-        composable(Screen.Main.route) {
-            MainScreen(navController = navController)
-        }
-        composable(Screen.Settings.route) {
-            SettingsScreen(navController = navController)
-        }
-        composable(Screen.About.route) {
-            AboutScreen(navController = navController)
         }
     }
 }
