@@ -10,20 +10,20 @@ import com.myapplications.mypasswords.model.HomeItem
 import com.myapplications.mypasswords.model.PasswordEntry
 import com.myapplications.mypasswords.model.PasswordEntryWithCredentials
 import com.myapplications.mypasswords.repository.PasswordRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repository = PasswordRepository.apply {
-        initialize(application)
-    }
+    // The repository is now initialized in the Application class, so this call is removed.
+    private val repository = PasswordRepository
 
     // Combine folders and root password entries into a single list for the main screen.
     val homeItems: Flow<List<HomeItem>> = combine(
-        repository.getAllFolders(),
-        repository.getRootEntriesWithCredentials()
+        repository.getAllFolders().flowOn(Dispatchers.Default),
+        repository.getRootEntriesWithCredentials().flowOn(Dispatchers.Default)
     ) { folders, passwordEntries ->
         val folderItems = folders.map { HomeItem.FolderItem(it) }
         val passwordItems = passwordEntries.map { HomeItem.PasswordEntryItem(it) }
@@ -67,7 +67,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val updatedEntry = item.entryWithCredentials.entry.copy(folderId = folderId)
                 repository.updateEntry(updatedEntry)
             }
-            // Note: Moving folders into other folders is not implemented in this version.
         }
     }
 

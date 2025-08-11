@@ -12,7 +12,9 @@ import androidx.navigation.NavHostController
 import com.myapplications.mypasswords.navigation.Screen
 import com.myapplications.mypasswords.security.AuthManager
 import com.myapplications.mypasswords.security.SecurityManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun AppLifecycleHandler(navController: NavHostController) {
@@ -23,14 +25,10 @@ fun AppLifecycleHandler(navController: NavHostController) {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP) {
-                // When the app goes to the background, mark as not authenticated.
                 AuthManager.isAuthenticated.value = false
             } else if (event == Lifecycle.Event.ON_START) {
-                // When the app comes to the foreground, check if authentication is needed.
                 scope.launch {
                     val currentRoute = navController.currentBackStackEntry?.destination?.route
-
-                    // List of screens that do not require a PIN check on resume
                     val openRoutes = setOf(
                         Screen.Splash.route,
                         Screen.Onboarding.route,
@@ -38,13 +36,15 @@ fun AppLifecycleHandler(navController: NavHostController) {
                         Screen.PinAuth.route
                     )
 
-                    val needsAuth = !AuthManager.isAuthenticated.value &&
-                            SecurityManager().isPinSet(context) &&
-                            currentRoute !in openRoutes
+                    // Move blocking I/O to a background thread
+                    val needsAuth = withContext(Dispatchers.IO) {
+                        !AuthManager.isAuthenticated.value &&
+                                SecurityManager().isPinSet(context) &&
+                                currentRoute !in openRoutes
+                    }
 
                     if (needsAuth) {
                         navController.navigate(Screen.PinAuth.route) {
-                            // Clear the entire back stack and make PinAuth the new root.
                             popUpTo(navController.graph.startDestinationId) {
                                 inclusive = true
                             }

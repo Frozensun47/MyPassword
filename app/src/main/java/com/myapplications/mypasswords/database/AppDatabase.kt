@@ -9,7 +9,8 @@ import com.myapplications.mypasswords.model.Credential
 import com.myapplications.mypasswords.model.Folder
 import com.myapplications.mypasswords.model.PasswordEntry
 import com.myapplications.mypasswords.security.SecurityManager
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import net.zetetic.database.sqlcipher.SQLiteConnection
 import net.zetetic.database.sqlcipher.SQLiteDatabaseHook
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
@@ -20,7 +21,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
  */
 @Database(entities = [PasswordEntry::class, Credential::class, Folder::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun passwordEntryDao(): PasswordEntryDao // Changed from passwordDao()
+    abstract fun passwordEntryDao(): PasswordEntryDao
     abstract fun folderDao(): FolderDao
 }
 
@@ -32,23 +33,18 @@ object DatabaseProvider {
 
     @Volatile
     private var INSTANCE: AppDatabase? = null
+    private val mutex = Mutex()
 
-    fun getInstance(context: Context): AppDatabase {
-        // Use double-checked locking to ensure the instance is created only once.
-        return INSTANCE ?: synchronized(this) {
+    // The getInstance function now uses a Mutex for thread-safe access.
+    suspend fun getInstance(context: Context): AppDatabase {
+        return INSTANCE ?: mutex.withLock {
             INSTANCE ?: buildDatabase(context).also { INSTANCE = it }
         }
     }
 
-    private fun buildDatabase(context: Context): AppDatabase {
-        // Since getDatabasePassphrase is a suspend function, we need a coroutine.
-        // runBlocking is acceptable here because database creation is a one-time,
-        // blocking operation that must complete for the app to function.
-        val passphrase = runBlocking {
-            SecurityManager().getDatabasePassphrase(context).toByteArray()
-        }
+    private suspend fun buildDatabase(context: Context): AppDatabase {
+        val passphrase = SecurityManager().getDatabasePassphrase(context).toByteArray()
 
-        // Define the hook to configure the database after the key is set.
         val hook = object : SQLiteDatabaseHook {
             override fun preKey(connection: SQLiteConnection) {}
             override fun postKey(connection: SQLiteConnection?) {}
@@ -56,15 +52,12 @@ object DatabaseProvider {
 
         val factory = SupportOpenHelperFactory(passphrase, hook, true)
 
-        // Build the Room database instance with the encryption factory
         return Room.databaseBuilder(
             context.applicationContext,
             AppDatabase::class.java,
             "mypasswords.db"
         )
             .openHelperFactory(factory)
-            // This will discard the old data and create the new schema.
-            // For a production app, a proper migration would be needed.
             .fallbackToDestructiveMigration(false)
             .build()
     }

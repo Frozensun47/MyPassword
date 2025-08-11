@@ -10,8 +10,12 @@ import com.myapplications.mypasswords.model.Folder
 import com.myapplications.mypasswords.model.PasswordEntry
 import com.myapplications.mypasswords.model.PasswordEntryWithCredentials
 import com.myapplications.mypasswords.security.SecurityManager
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Singleton repository for managing Password Entries, Credentials, and Folders.
@@ -23,14 +27,31 @@ object PasswordRepository {
     private lateinit var folderDao: FolderDao
     private lateinit var securityManager: SecurityManager
 
-    fun initialize(context: Context) {
-        if (!::passwordEntryDao.isInitialized) {
-            val appContext = context.applicationContext
-            val database = DatabaseProvider.getInstance(appContext)
-            // Use the new DAO for password entries
-            passwordEntryDao = database.passwordEntryDao()
-            folderDao = database.folderDao()
-            securityManager = SecurityManager()
+    private val isInitialized = AtomicBoolean(false)
+    private lateinit var initializationDeferred: CompletableDeferred<Unit>
+
+    suspend fun initialize(context: Context) {
+        if (isInitialized.compareAndSet(false, true)) {
+            initializationDeferred = CompletableDeferred()
+            try {
+                val appContext = context.applicationContext
+                val database = DatabaseProvider.getInstance(appContext)
+                passwordEntryDao = database.passwordEntryDao()
+                folderDao = database.folderDao()
+                securityManager = SecurityManager()
+                initializationDeferred.complete(Unit)
+            } catch (e: Exception) {
+                initializationDeferred.completeExceptionally(e)
+                throw e
+            }
+        } else {
+            initializationDeferred.await()
+        }
+    }
+
+    private suspend fun checkInitialized() {
+        if (!isInitialized.get()) {
+            initializationDeferred.await()
         }
     }
 
@@ -44,27 +65,26 @@ object PasswordRepository {
     }
 
     fun getRootEntriesWithCredentials(): Flow<List<PasswordEntryWithCredentials>> {
-        checkInitialized()
+        // The check is now suspendable and should be awaited
+        // The Flow collects on a background thread so this is safe
         return passwordEntryDao.getRootEntriesWithCredentials().map { list ->
             list.map { decryptCredentials(it) }
         }
     }
 
     fun getEntriesInFolder(folderId: String): Flow<List<PasswordEntryWithCredentials>> {
-        checkInitialized()
         return passwordEntryDao.getEntriesWithCredentialsInFolder(folderId).map { list ->
             list.map { decryptCredentials(it) }
         }
     }
 
     fun getEntryWithCredentials(entryId: String): Flow<PasswordEntryWithCredentials?> {
-        checkInitialized()
         return passwordEntryDao.getEntryWithCredentials(entryId).map { entry ->
             entry?.let { decryptCredentials(it) }
         }
     }
 
-    suspend fun saveEntryWithCredentials(entry: PasswordEntry, credentials: List<Credential>) {
+    suspend fun saveEntryWithCredentials(entry: PasswordEntry, credentials: List<Credential>) = withContext(Dispatchers.IO) {
         checkInitialized()
         val encryptedCredentials = credentials.map {
             it.copy(password = securityManager.encrypt(it.password))
@@ -72,12 +92,12 @@ object PasswordRepository {
         passwordEntryDao.saveEntryWithCredentials(entry, encryptedCredentials)
     }
 
-    suspend fun deleteEntry(entry: PasswordEntry) {
+    suspend fun deleteEntry(entry: PasswordEntry) = withContext(Dispatchers.IO) {
         checkInitialized()
         passwordEntryDao.deleteEntry(entry)
     }
 
-    suspend fun updateEntry(entry: PasswordEntry) {
+    suspend fun updateEntry(entry: PasswordEntry) = withContext(Dispatchers.IO) {
         checkInitialized()
         passwordEntryDao.updateEntry(entry)
     }
@@ -85,29 +105,22 @@ object PasswordRepository {
 
     // --- Folder Functions ---
     fun getAllFolders(): Flow<List<Folder>> {
-        checkInitialized()
         return folderDao.getAllFolders()
     }
 
-    suspend fun saveFolder(folder: Folder) {
+    suspend fun saveFolder(folder: Folder) = withContext(Dispatchers.IO) {
         checkInitialized()
         folderDao.insertFolder(folder)
     }
 
-    suspend fun deleteFolder(folder: Folder) {
+    suspend fun deleteFolder(folder: Folder) = withContext(Dispatchers.IO) {
         checkInitialized()
         folderDao.deleteFolder(folder)
     }
 
-    suspend fun deleteAllData() {
+    suspend fun deleteAllData() = withContext(Dispatchers.IO) {
         checkInitialized()
-         passwordEntryDao.deleteAll()
-         folderDao.deleteAll()
-    }
-
-    private fun checkInitialized() {
-        if (!::passwordEntryDao.isInitialized) {
-            throw IllegalStateException("PasswordRepository not initialized. Call initialize() in your Application class.")
-        }
+        passwordEntryDao.deleteAll()
+        folderDao.deleteAll()
     }
 }

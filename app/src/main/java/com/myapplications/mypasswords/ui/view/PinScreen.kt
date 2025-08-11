@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.myapplications.mypasswords.ui.viewmodel.PinViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -37,28 +38,9 @@ fun PinScreen(
     val uiState by pinViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
+    // Initialize the ViewModel with the correct mode
     LaunchedEffect(Unit) {
-        pinViewModel.initialize(mode, onSuccess)
-    }
-
-    // New state to hold the ticking time remaining
-    var timeRemaining by remember { mutableLongStateOf(0L) }
-
-    // LaunchedEffect to handle the countdown timer
-    LaunchedEffect(uiState.isLockedOut, uiState.lockoutTimestamp) {
-        if (uiState.isLockedOut) {
-            while (true) {
-                val now = System.currentTimeMillis()
-                val remaining = (uiState.lockoutTimestamp - now).coerceAtLeast(0L)
-                timeRemaining = remaining / 1000L
-                if (timeRemaining <= 0L) {
-                    // Timer is up, so check the lockout status in the ViewModel to unlock
-                    pinViewModel.checkLockoutStatus()
-                    break
-                }
-                delay(1000L)
-            }
-        }
+        pinViewModel.initialize(mode)
     }
 
     Scaffold(
@@ -82,10 +64,10 @@ fun PinScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Subtitle text changes based on lockout status and countdown
+            // Subtitle text now uses the lockoutTimeRemaining from the ViewModel
             val subtitleText = if (uiState.isLockedOut) {
-                if (timeRemaining > 0) {
-                    "Locked out. Try again in $timeRemaining seconds."
+                if (uiState.lockoutTimeRemaining > 0) {
+                    "Locked out. Try again in ${uiState.lockoutTimeRemaining} seconds."
                 } else {
                     "Please wait..."
                 }

@@ -8,8 +8,10 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,52 +22,72 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
 import com.myapplications.mypasswords.navigation.AppNavigation
+import com.myapplications.mypasswords.navigation.Screen
 import com.myapplications.mypasswords.repository.PasswordRepository
+import com.myapplications.mypasswords.security.SecurityManager
 import com.myapplications.mypasswords.ui.AppLifecycleHandler
 import com.myapplications.mypasswords.ui.theme.MyPasswordsTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainActivity : ComponentActivity() {
-
-    private var securityAlert by mutableStateOf<String?>(null)
-
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        // Set secure flag to prevent screenshots and screen recording.
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
         )
 
-        // --- NEW: Security Checks ---
-        if (isDeviceRooted() || isRunningOnEmulator()) {
-            securityAlert = "For your security, this app cannot be run on a rooted or emulated device."
-        } else {
-            // Only initialize the repository and set content if the device is secure.
-            PasswordRepository.initialize(applicationContext)
-        }
-
         setContent {
+            val context = LocalContext.current
             MyPasswordsTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    var securityAlert by remember { mutableStateOf<String?>(null) }
+                    var startDestination by remember { mutableStateOf<String?>(null) }
+                    var keepSplashOnScreen by remember { mutableStateOf(true) }
+
+                    splashScreen.setKeepOnScreenCondition { keepSplashOnScreen }
+
+                    LaunchedEffect(Unit) {
+                        withContext(Dispatchers.IO) {
+                            try {
+                                if (isDeviceRooted() || isRunningOnEmulator()) {
+                                    securityAlert = "For your security, this app cannot be run on a rooted or emulated device."
+                                } else {
+                                    val securityManager = SecurityManager()
+                                    val isPinSet = securityManager.isPinSet(context)
+                                    startDestination = if (isPinSet) Screen.PinAuth.route else Screen.Onboarding.route
+                                }
+                            } catch (e: Exception) {
+                                securityAlert = "Failed to start application: ${e.message}"
+                            } finally {
+                                keepSplashOnScreen = false
+                            }
+                        }
+                    }
+
                     if (securityAlert != null) {
-                        // If a security alert is present, show the dialog and do not load the app.
                         SecurityAlertDialog(
                             message = securityAlert!!,
-                            onDismiss = { finish() } // Exit the app when dismissed
+                            onDismiss = { finish() }
                         )
-                    } else {
-                        // If device is secure, load the full app.
+                    } else if (startDestination != null) {
                         val navController = rememberNavController()
                         AppLifecycleHandler(navController = navController)
-                        AppNavigation(navController = navController)
+                        AppNavigation(navController = navController, startDestination = startDestination!!)
                     }
                 }
             }
@@ -74,13 +96,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        // --- NEW: Clear clipboard when the app goes into the background ---
         clearClipboard()
     }
 
     private fun clearClipboard() {
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        // Set the clipboard to an empty clip to clear it.
         val clip = ClipData.newPlainText("", "")
         clipboard.setPrimaryClip(clip)
     }

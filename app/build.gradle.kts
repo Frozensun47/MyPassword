@@ -80,6 +80,7 @@ dependencies {
     // Room and SQLCipher (Encrypted Database)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.core.splashscreen)
     ksp(libs.androidx.room.compiler)
     implementation(libs.net.zetetic.sqlcipher) // SQLCipher replaces Android SQLite
 

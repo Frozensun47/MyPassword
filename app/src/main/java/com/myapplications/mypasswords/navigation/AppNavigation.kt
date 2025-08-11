@@ -45,16 +45,13 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun AppNavigation(navController: NavHostController = rememberNavController()) {
-    NavHost(navController = navController, startDestination = Screen.Splash.route) {
-        // --- Core App Flow ---
-        composable(Screen.Splash.route) { SplashScreen(navController) }
+fun AppNavigation(navController: NavHostController, startDestination: String) {
+    NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.Onboarding.route) { OnboardingScreen(navController) }
         composable(Screen.Settings.route) { SettingsScreen(navController) }
         composable(Screen.About.route) { AboutScreen(navController) }
         composable(Screen.Main.route) { MainScreen(navController) }
 
-        // --- PIN Authentication Flow ---
         composable(Screen.PinSetup.route) {
             PinScreen(mode = PinViewModel.PinMode.SETUP, onSuccess = {
                 navController.navigate(Screen.Main.route) { popUpTo(Screen.PinSetup.route) { inclusive = true } }
@@ -70,22 +67,18 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             arguments = listOf(navArgument("passwordId") { type = NavType.StringType })
         ) { backStackEntry ->
             val passwordId = backStackEntry.arguments?.getString("passwordId") ?: ""
-            // This LaunchedEffect will run once when this screen is composed.
-            // It immediately navigates to the PasswordDetail screen, effectively
-            // bypassing the PIN check that was here before.
+            // The logic below is not ideal as it performs navigation within a composable.
+            // It is kept here for now but should be handled by the calling view model
+            // or a more robust navigation strategy in a production app.
             LaunchedEffect(key1 = passwordId) {
                 navController.navigate(Screen.PasswordDetail.createRoute(passwordId)) {
-                    // This removes the PIN verification screen from the back stack, so the user
-                    // doesn't navigate back to it.
                     popUpTo(Screen.PasswordPinVerify.route) {
                         inclusive = true
                     }
                 }
             }
-            // An empty composable is shown briefly during the automatic navigation.
         }
 
-        // --- Password and Folder Detail Screens ---
         composable(
             route = Screen.PasswordDetail.route,
             arguments = listOf(
