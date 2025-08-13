@@ -1,3 +1,4 @@
+// FILE: com/myapplications/mypasswords/ui/view/AboutScreen.kt
 package com.myapplications.mypasswords.ui.view
 
 import android.content.Intent
@@ -34,10 +35,7 @@ fun AboutScreen(navController: NavController) {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                }
             )
         }
     ) { paddingValues ->
@@ -48,7 +46,6 @@ fun AboutScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(16.dp)
         ) {
-            // App Info Header
             item {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -66,19 +63,15 @@ fun AboutScreen(navController: NavController) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Version 2.8",
+                        text = "Version 2.8", // This can be dynamically loaded from BuildConfig
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Description Card
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(2.dp)
-                ) {
+                Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = "Your digital security, uncompromised. MyPasswords is a 100% offline password manager that secures your data with military-grade AES-256 encryption.",
                         style = MaterialTheme.typography.bodyLarge,
@@ -89,12 +82,8 @@ fun AboutScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Security Promise Card
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(2.dp)
-                ) {
+                Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Our Security Promise",
@@ -124,12 +113,8 @@ fun AboutScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Links Card
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(2.dp)
-                ) {
+                Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Connect & Support",

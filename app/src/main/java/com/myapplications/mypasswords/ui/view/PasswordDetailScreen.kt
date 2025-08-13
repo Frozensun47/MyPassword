@@ -1,14 +1,7 @@
 // FILE: com/myapplications/mypasswords/ui/view/PasswordDetailScreen.kt
 package com.myapplications.mypasswords.ui.view
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -19,7 +12,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -35,7 +27,10 @@ import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-// A temporary state holder for the UI
+/**
+ * A UI-specific state holder for a credential. This allows for managing UI-only state,
+ * like password visibility, without modifying the core data model.
+ */
 private data class CredentialState(
     val id: String = UUID.randomUUID().toString(),
     var username: String,
@@ -43,7 +38,16 @@ private data class CredentialState(
     var passwordVisible: Boolean = false
 )
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+/**
+ * The main screen for adding a new password entry or editing an existing one.
+ * It handles user input for the entry's title and one or more associated credentials.
+ *
+ * @param navController The NavController for handling navigation events.
+ * @param passwordId The ID of the password entry to edit, or "new" to create a new one.
+ * @param folderId The optional ID of the folder this entry belongs to.
+ * @param mainViewModel The ViewModel for interacting with the repository.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PasswordDetailScreen(
     navController: NavController,
@@ -58,10 +62,10 @@ fun PasswordDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // --- Selection Mode State for Deleting Credentials ---
     var selectedCredentialIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     val inSelectionMode = selectedCredentialIds.isNotEmpty()
 
+    // Load the existing entry data when in "edit" mode.
     LaunchedEffect(passwordId) {
         if (!isNewEntry) {
             mainViewModel.getEntryWithCredentials(passwordId!!)?.collect { entryWithCreds ->
@@ -102,7 +106,7 @@ fun PasswordDetailScreen(
                 label = "DetailTopAppBarAnimation"
             ) { selectionActive ->
                 if (selectionActive) {
-                    // Contextual action bar for when an item is selected
+                    // Contextual action bar for when an item is selected.
                     TopAppBar(
                         title = { Text("${selectedCredentialIds.size} selected") },
                         navigationIcon = {
@@ -117,13 +121,10 @@ fun PasswordDetailScreen(
                             }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete selected account(s)")
                             }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
+                        }
                     )
                 } else {
-                    // Standard top app bar
+                    // Standard top app bar.
                     TopAppBar(
                         title = { Text(if (isNewEntry) "Add Entry" else "Edit Entry") },
                         navigationIcon = {
@@ -148,7 +149,7 @@ fun PasswordDetailScreen(
         },
         floatingActionButton = {
             val isFormValid = title.isNotBlank() && credentials.all { it.username.isNotBlank() && it.password.isNotBlank() }
-            // Hide FAB when in selection mode
+            // Hide FAB when in selection mode.
             AnimatedVisibility(visible = isFormValid && !inSelectionMode) {
                 FloatingActionButton(onClick = ::handleSave) {
                     Icon(Icons.Default.Check, contentDescription = "Save")
@@ -170,7 +171,7 @@ fun PasswordDetailScreen(
                     label = { Text("Title (e.g., Google, Banking)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    enabled = !inSelectionMode // Disable editing in selection mode
+                    enabled = !inSelectionMode
                 )
             }
 
@@ -201,7 +202,6 @@ fun PasswordDetailScreen(
             }
 
             item {
-                // Hide the "Add" button when in selection mode
                 if (!inSelectionMode) {
                     OutlinedButton(
                         onClick = { credentials = credentials + CredentialState(username = "", password = "") },
@@ -216,6 +216,9 @@ fun PasswordDetailScreen(
     }
 }
 
+/**
+ * A card-based component for entering a single credential (username and password).
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CredentialInputCard(
@@ -271,6 +274,9 @@ private fun CredentialInputCard(
     }
 }
 
+/**
+ * A custom TextField with a transparent background, suitable for use inside cards.
+ */
 @Composable
 private fun BorderlessTextField(
     value: String,

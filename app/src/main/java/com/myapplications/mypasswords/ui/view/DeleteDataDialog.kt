@@ -1,7 +1,13 @@
+// FILE: com/myapplications/mypasswords/ui/view/DeleteDataDialog.kt
 package com.myapplications.mypasswords.ui.view
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun DeleteDataDialog(
@@ -13,14 +19,18 @@ fun DeleteDataDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Are you sure?") },
+        title = { Text("Are you absolutely sure?") },
         text = {
-            OutlinedTextField(
-                value = confirmationText,
-                onValueChange = { confirmationText = it },
-                label = { Text("Type 'delete' to confirm") },
-                singleLine = true
-            )
+            Column {
+                Text("This action cannot be undone. This will permanently delete all of your data.")
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = confirmationText,
+                    onValueChange = { confirmationText = it },
+                    label = { Text("Type 'delete' to confirm") },
+                    singleLine = true
+                )
+            }
         },
         confirmButton = {
             Button(
@@ -30,7 +40,7 @@ fun DeleteDataDialog(
                     containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Delete")
+                Text("Delete Everything")
             }
         },
         dismissButton = {

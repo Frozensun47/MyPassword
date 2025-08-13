@@ -24,11 +24,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import com.myapplications.mypasswords.ui.viewmodel.PinViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * A full-screen UI for PIN entry, supporting both initial setup and authentication.
+ * It provides visual feedback for PIN entry, errors, and temporary lockouts.
+ *
+ * @param mode The operational mode of the screen (e.g., SETUP, AUTHENTICATE).
+ * @param onSuccess A callback function to be invoked upon successful PIN verification or setup.
+ * @param pinViewModel The ViewModel that manages the state and logic for this screen.
+ */
 @Composable
 fun PinScreen(
     mode: PinViewModel.PinMode,
@@ -38,7 +45,7 @@ fun PinScreen(
     val uiState by pinViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
-    // Initialize the ViewModel with the correct mode
+    // Initialize the ViewModel with the correct mode when the screen is first composed.
     LaunchedEffect(Unit) {
         pinViewModel.initialize(mode)
     }
@@ -64,7 +71,6 @@ fun PinScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Subtitle text now uses the lockoutTimeRemaining from the ViewModel
             val subtitleText = if (uiState.isLockedOut) {
                 if (uiState.lockoutTimeRemaining > 0) {
                     "Locked out. Try again in ${uiState.lockoutTimeRemaining} seconds."
@@ -79,7 +85,7 @@ fun PinScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (uiState.isLockedOut) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.height(40.dp) // Reserve space to prevent layout shifts
+                modifier = Modifier.height(40.dp) // Reserve space to prevent layout shifts.
             )
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -97,28 +103,34 @@ fun PinScreen(
         }
     }
 
-    // Handle success navigation
+    // Trigger the onSuccess callback when the ViewModel signals a successful operation.
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
-            delay(100)
+            delay(100) // A brief delay for visual feedback.
             onSuccess()
         }
     }
 
-    // Handle error state by showing a message and then clearing it
+    // Automatically clear the error state after a short delay.
     LaunchedEffect(uiState.showError) {
         if (uiState.showError) {
             coroutineScope.launch {
-                delay(1000) // Show error for 1 second
+                delay(1000) // Show error for 1 second.
                 pinViewModel.clearError()
             }
         }
     }
 }
 
+/**
+ * A row of dots that visually represent the entered PIN length and error states.
+ *
+ * @param pinLength The number of digits currently entered.
+ * @param error A boolean to indicate if the last PIN entry was incorrect.
+ */
 @SuppressLint("UseOfNonLambdaOffsetOverload")
 @Composable
-fun PinIndicator(pinLength: Int, error: Boolean) {
+private fun PinIndicator(pinLength: Int, error: Boolean) {
     val shake by animateFloatAsState(
         targetValue = if (error) 1f else 0f,
         animationSpec = tween(durationMillis = 500), label = "shake"
@@ -127,7 +139,7 @@ fun PinIndicator(pinLength: Int, error: Boolean) {
     Row(
         modifier = Modifier
             .padding(horizontal = 24.dp)
-            .offset(x = (shake * 10f * kotlin.math.sin(shake * 2 * Math.PI * 5f)).dp), // Shake animation
+            .offset(x = (shake * 10f * kotlin.math.sin(shake * 2 * Math.PI * 5f)).dp), // Shake animation for error feedback.
         horizontalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         repeat(PinViewModel.PIN_LENGTH) { index ->
@@ -146,8 +158,15 @@ fun PinIndicator(pinLength: Int, error: Boolean) {
     }
 }
 
+/**
+ * A 3x4 grid of buttons for PIN entry, including numbers and a backspace key.
+ *
+ * @param onNumberClick Callback for when a number button is pressed.
+ * @param onBackspaceClick Callback for when the backspace button is pressed.
+ * @param enabled A boolean to control if the keypad is interactive.
+ */
 @Composable
-fun PinKeypad(
+private fun PinKeypad(
     onNumberClick: (String) -> Unit,
     onBackspaceClick: () -> Unit,
     enabled: Boolean
@@ -173,14 +192,22 @@ fun PinKeypad(
                     onClick = onBackspaceClick,
                     enabled = enabled
                 )
-                else -> Spacer(modifier = Modifier.size(72.dp)) // Empty space for layout
+                else -> Spacer(modifier = Modifier.size(72.dp)) // Empty space for layout balance.
             }
         }
     }
 }
 
+/**
+ * A circular button for the PIN keypad.
+ *
+ * @param onClick The function to call when the button is clicked.
+ * @param text The optional text to display on the button.
+ * @param icon The optional icon to display on the button.
+ * @param enabled A boolean to control if the button is interactive.
+ */
 @Composable
-fun KeypadButton(
+private fun KeypadButton(
     onClick: () -> Unit,
     text: String? = null,
     icon: ImageVector? = null,

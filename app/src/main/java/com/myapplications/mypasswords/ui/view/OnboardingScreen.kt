@@ -26,10 +26,21 @@ import androidx.navigation.NavController
 import com.myapplications.mypasswords.navigation.Screen
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, )
+/**
+ * Represents a single page in the onboarding flow.
+ * @param icon The icon to display for the page.
+ * @param title The main title of the page.
+ * @param description The detailed description for the page.
+ */
+data class OnboardingPage(val icon: ImageVector, val title: String, val description: String)
+
+/**
+ * The main composable for the onboarding experience. It uses a HorizontalPager to
+ * guide the user through the app's key features and security principles.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(navController: NavController) {
-    // Updated and expanded list of onboarding pages
     val pages = listOf(
         OnboardingPage(
             icon = Icons.Default.Celebration,
@@ -72,10 +83,7 @@ fun OnboardingScreen(navController: NavController) {
                     }) {
                         Text("Skip")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                }
             )
         },
         bottomBar = {
@@ -119,7 +127,6 @@ fun OnboardingScreen(navController: NavController) {
                         .padding(horizontal = 16.dp)
                         .padding(bottom = 16.dp)
                 ) {
-                    // Change button text on the last page
                     val buttonText = if (pagerState.currentPage == pages.size - 1) "Get Started" else "Next"
                     Text(buttonText)
                 }
@@ -136,7 +143,7 @@ fun OnboardingScreen(navController: NavController) {
 }
 
 @Composable
-fun OnboardingCard(page: OnboardingPage) {
+private fun OnboardingCard(page: OnboardingPage) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -151,5 +158,3 @@ fun OnboardingCard(page: OnboardingPage) {
         Text(text = page.description, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
     }
 }
-
-data class OnboardingPage(val icon: ImageVector, val title: String, val description: String)

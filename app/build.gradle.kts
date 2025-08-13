@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     ksp(libs.androidx.room.compiler)
     implementation(libs.net.zetetic.sqlcipher) // SQLCipher replaces Android SQLite
+    implementation(libs.androidx.biometric.ktx)
 
     // DataStore (for preferences)
     implementation(libs.androidx.datastore.preferences)

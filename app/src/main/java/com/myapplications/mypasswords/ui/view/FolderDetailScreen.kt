@@ -1,3 +1,4 @@
+
 // FILE: com/myapplications/mypasswords/ui/view/FolderDetailScreen.kt
 package com.myapplications.mypasswords.ui.view
 
@@ -32,12 +33,8 @@ fun FolderDetailScreen(
     folderName: String,
     mainViewModel: MainViewModel = viewModel()
 ) {
-    // Corrected: Fetch PasswordEntryWithCredentials instead of the old Password object
     val entriesInFolder by mainViewModel.getEntriesInFolder(folderId).collectAsState(initial = emptyList())
-
-    // --- Selection Mode State ---
     var inSelectionMode by remember { mutableStateOf(false) }
-    // Corrected: Store the full HomeItem for easier processing in the ViewModel
     var selectedItems by remember { mutableStateOf(emptySet<HomeItem>()) }
     var showMoveToFolderDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
@@ -47,7 +44,6 @@ fun FolderDetailScreen(
         selectedItems = emptySet()
     }
 
-    // --- Dialogs ---
     if (showMoveToFolderDialog) {
         MoveToFolderDialog(
             viewModel = mainViewModel,
@@ -91,11 +87,7 @@ fun FolderDetailScreen(
                     TopAppBar(
                         title = { Text(folderName) },
                         navigationIcon = {
-                            IconButton(onClick = {
-                                if (navController.currentBackStackEntry?.destination?.route == Screen.FolderDetail.route) {
-                                    navController.popBackStack()
-                                }
-                            }) {
+                            IconButton(onClick = { navController.popBackStack() }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
                         },

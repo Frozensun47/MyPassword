@@ -25,12 +25,9 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(navController: NavController, mainViewModel: MainViewModel = viewModel()) {
-    // Collect the entire UI state from the ViewModel.
     val uiState by mainViewModel.uiState.collectAsState()
-    val homeItems = uiState.homeItems // Extract homeItems for convenience.
+    val homeItems = uiState.homeItems
 
-    // This LaunchedEffect will run once when the MainScreen is first composed.
-    // It safely triggers the data loading process.
     LaunchedEffect(Unit) {
         mainViewModel.loadData()
     }
@@ -41,8 +38,6 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
     var showFolderDialog by remember { mutableStateOf(false) }
     var showMoveToFolderDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
-
-    // --- Selection Mode State ---
     var inSelectionMode by remember { mutableStateOf(false) }
     var selectedItems by remember { mutableStateOf<Set<HomeItem>>(emptySet()) }
 
@@ -51,7 +46,6 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
         selectedItems = emptySet()
     }
 
-    // --- Dialogs ---
     if (showFolderDialog) {
         FolderEditDialog(
             onDismiss = { showFolderDialog = false },
@@ -124,7 +118,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
             },
             floatingActionButtonPosition = FabPosition.Center,
             floatingActionButton = {
-                if (!inSelectionMode && !uiState.isLoading) { // Hide FAB while loading
+                if (!inSelectionMode && !uiState.isLoading) {
                     FloatingActionButton(
                         onClick = { navController.navigate(Screen.PasswordDetail.createRoute("new")) },
                         shape = CircleShape
@@ -137,7 +131,6 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                 }
             }
         ) { paddingValues ->
-            // If isLoading is true, show a loading indicator.
             if (uiState.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -146,7 +139,6 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                     CircularProgressIndicator()
                 }
             } else {
-                // Otherwise, show the list of items.
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()

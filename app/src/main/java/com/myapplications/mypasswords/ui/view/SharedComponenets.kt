@@ -8,7 +8,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,29 +20,24 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.myapplications.mypasswords.R
 import com.myapplications.mypasswords.model.Folder
 import com.myapplications.mypasswords.model.PasswordEntryWithCredentials
 import com.myapplications.mypasswords.ui.viewmodel.MainViewModel
 
+/**
+ * The standard top app bar for the main screen of the application.
+ *
+ * @param onMenuClick Callback for when the navigation menu icon is clicked.
+ * @param onCreateFolderClick Callback for when the "Create Folder" action is clicked.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StandardTopAppBar(onMenuClick: () -> Unit, onCreateFolderClick: () -> Unit) {
     TopAppBar(
-        title = {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Image(
-                    painter = painterResource(id = R.drawable.my_password_text),
-                    contentDescription = "App Logo",
-                    modifier = Modifier.height(35.dp).align(Alignment.Center)
-                )
-            }
-        },
+        title = { Text("MyPasswords", fontWeight = FontWeight.Medium) },
         navigationIcon = {
             IconButton(onClick = onMenuClick) {
                 Icon(Icons.Default.Menu, contentDescription = "Menu")
@@ -56,6 +51,14 @@ fun StandardTopAppBar(onMenuClick: () -> Unit, onCreateFolderClick: () -> Unit) 
     )
 }
 
+/**
+ * A contextual top app bar that appears when items are selected in a list.
+ *
+ * @param selectedItemCount The number of items currently selected.
+ * @param onClearSelection Callback to clear the current selection.
+ * @param onMove Callback to trigger the "move" action for the selected items.
+ * @param onDelete Callback to trigger the "delete" action for the selected items.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectionTopAppBar(
@@ -73,7 +76,7 @@ fun SelectionTopAppBar(
         },
         actions = {
             IconButton(onClick = onMove) {
-                Icon(Icons.Default.MoveToInbox, contentDescription = "Move to Folder")
+                Icon(Icons.Default.DriveFileMove, contentDescription = "Move to Folder")
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete Selected Items")
@@ -85,7 +88,9 @@ fun SelectionTopAppBar(
     )
 }
 
-// **THE FIX IS HERE**: PasswordCard now accepts the new data model.
+/**
+ * A card composable for displaying a password entry in a list.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PasswordCard(
@@ -100,11 +105,13 @@ fun PasswordCard(
         onLongClick = onLongClick,
         icon = Icons.Default.Lock,
         title = entryWithCredentials.entry.title,
-        // Display the first username as a subtitle, or an empty string if there are no credentials
         subtitle = entryWithCredentials.credentials.firstOrNull()?.username ?: ""
     )
 }
 
+/**
+ * A card composable for displaying a folder in a list.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FolderCard(
@@ -119,13 +126,16 @@ fun FolderCard(
         onLongClick = onLongClick,
         icon = Icons.Default.Folder,
         title = folder.name,
-        subtitle = null
+        subtitle = null // Folders don't have a subtitle
     )
 }
 
+/**
+ * A generic, selectable card component used for both folders and password entries.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SelectableItemCard(
+private fun SelectableItemCard(
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -139,8 +149,8 @@ fun SelectableItemCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(elevation, CardDefaults.shape)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         colors = CardDefaults.cardColors(containerColor = cardColor),
     ) {
         Row(
@@ -184,7 +194,7 @@ fun SelectableItemCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
-                if (subtitle != null) {
+                if (!subtitle.isNullOrEmpty()) {
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
@@ -196,7 +206,9 @@ fun SelectableItemCard(
     }
 }
 
-
+/**
+ * A dialog that allows the user to move selected items to a different folder.
+ */
 @Composable
 fun MoveToFolderDialog(
     viewModel: MainViewModel,
@@ -221,31 +233,29 @@ fun MoveToFolderDialog(
         onDismissRequest = onDismiss,
         title = { Text("Move to") },
         text = {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            LazyColumn {
                 item {
-                    DialogRow(
-                        icon = Icons.Default.Home,
-                        text = "Home",
-                        onClick = { onConfirm(null) }
+                    ListItem(
+                        headlineContent = { Text("Home") },
+                        leadingContent = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                        modifier = Modifier.clickable { onConfirm(null) }
                     )
                 }
                 items(folders.filter { it.id != currentFolderId }) { folder ->
-                    DialogRow(
-                        icon = Icons.Default.Folder,
-                        text = folder.name,
-                        onClick = { onConfirm(folder.id) }
+                    ListItem(
+                        headlineContent = { Text(folder.name) },
+                        leadingContent = { Icon(Icons.Default.Folder, contentDescription = folder.name) },
+                        modifier = Modifier.clickable { onConfirm(folder.id) }
                     )
                 }
                 item {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 }
                 item {
-                    DialogRow(
-                        icon = Icons.Default.CreateNewFolder,
-                        text = "Create New Folder",
-                        onClick = { showFolderEditDialog = true }
+                    ListItem(
+                        headlineContent = { Text("Create New Folder") },
+                        leadingContent = { Icon(Icons.Default.CreateNewFolder, contentDescription = "Create New Folder") },
+                        modifier = Modifier.clickable { showFolderEditDialog = true }
                     )
                 }
             }
@@ -258,31 +268,9 @@ fun MoveToFolderDialog(
     )
 }
 
-@Composable
-private fun DialogRow(icon: ImageVector, text: String, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(16.dp))
-            Text(text, style = MaterialTheme.typography.bodyLarge)
-        }
-    }
-}
-
-
+/**
+ * A dialog to confirm the deletion of one or more items.
+ */
 @Composable
 fun DeleteConfirmationDialog(
     itemCount: Int,
@@ -309,6 +297,9 @@ fun DeleteConfirmationDialog(
     )
 }
 
+/**
+ * A dialog for creating a new folder or renaming an existing one.
+ */
 @Composable
 fun FolderEditDialog(
     initialFolderName: String = "",
@@ -321,16 +312,13 @@ fun FolderEditDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initialFolderName.isEmpty()) "Create Folder" else "Rename Folder") },
         text = {
-            Column {
-                Text("Enter a name for the folder.")
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = folderName,
-                    onValueChange = { folderName = it },
-                    label = { Text("Folder Name") },
-                    singleLine = true
-                )
-            }
+            OutlinedTextField(
+                value = folderName,
+                onValueChange = { folderName = it },
+                label = { Text("Folder Name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
         },
         confirmButton = {
             Button(
